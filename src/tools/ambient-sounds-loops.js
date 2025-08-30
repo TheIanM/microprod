@@ -345,7 +345,9 @@ export class AmbientSoundsTool extends AudioToolBase {
             volume: 0,
             rotationTimeout: null,
             loadingInBackground: false,
-            backgroundBatchSize: 3  // Load 3 files per batch
+            backgroundBatchSize: 3,  // Load 3 files per batch
+            filesUsed: 0,  // Track how many files have been played
+            pendingFiles: []  // Queue of remaining files to load
         };
         
         try {
@@ -371,9 +373,10 @@ export class AmbientSoundsTool extends AudioToolBase {
                         sound.loaded = true;
                         console.log(`✅ ${config.displayName}: First file loaded, ready to play instantly!`);
                         
-                        // Start background loading of remaining files
+                        // Queue remaining files for gradual loading
                         if (filesToUse.length > 1) {
-                            this.startBackgroundLoading(sound, filesToUse.slice(1));
+                            sound.pendingFiles = filesToUse.slice(1);
+                            this.loadNextBatchIfNeeded(sound);
                         }
                     } else {
                         console.warn(`❌ Failed to load first file for ${config.displayName}`);
@@ -473,45 +476,47 @@ export class AmbientSoundsTool extends AudioToolBase {
         }
     }
     
-    // Start background loading of remaining files in batches
-    startBackgroundLoading(sound, remainingFiles) {
-        if (sound.loadingInBackground || remainingFiles.length === 0) {
+    // Load next batch only when needed (after 2 of 3 files have been used)
+    loadNextBatchIfNeeded(sound) {
+        if (sound.loadingInBackground || sound.pendingFiles.length === 0) {
+            return;
+        }
+        
+        // Only load more if we have fewer than 3 files available OR 2/3 files have been used
+        const shouldLoadMore = sound.audioElements.length < 3 || sound.filesUsed >= 2;
+        
+        if (!shouldLoadMore) {
             return;
         }
         
         sound.loadingInBackground = true;
-        console.log(`🔄 Starting background loading for ${sound.config.displayName}: ${remainingFiles.length} files remaining`);
+        const batchSize = Math.min(sound.backgroundBatchSize, sound.pendingFiles.length);
+        const currentBatch = sound.pendingFiles.splice(0, batchSize);
         
-        // Load files in batches to avoid overwhelming the system
-        this.loadNextBatch(sound, remainingFiles, 0);
+        console.log(`🔄 Loading next batch for ${sound.config.displayName}: ${batchSize} files (${sound.pendingFiles.length} remaining in queue)`);
+        
+        this.loadBatch(sound, currentBatch);
     }
     
-    // Load files in small batches with delays between batches
-    async loadNextBatch(sound, remainingFiles, startIndex) {
-        const batchSize = sound.backgroundBatchSize;
-        const endIndex = Math.min(startIndex + batchSize, remainingFiles.length);
-        const currentBatch = remainingFiles.slice(startIndex, endIndex);
-        
-        console.log(`📦 Loading batch ${Math.floor(startIndex/batchSize) + 1}: files ${startIndex + 1}-${endIndex} of ${remainingFiles.length}`);
-        
+    // Load a specific batch of files
+    async loadBatch(sound, filesToLoad) {
         // Load batch in parallel
-        const batchPromises = currentBatch.map(file => this.loadSingleAudioFile(file));
+        const batchPromises = filesToLoad.map(file => this.loadSingleAudioFile(file));
         const results = await Promise.all(batchPromises);
         
         // Add successfully loaded files to the sound
         const loadedElements = results.filter(result => result !== null);
         sound.audioElements.push(...loadedElements);
         
-        console.log(`✅ Batch loaded: ${loadedElements.length}/${currentBatch.length} files. Total: ${sound.audioElements.length} files available`);
+        console.log(`✅ Batch loaded: ${loadedElements.length}/${filesToLoad.length} files. Total: ${sound.audioElements.length} files available`);
         
-        // If there are more files, schedule the next batch with a small delay
-        if (endIndex < remainingFiles.length) {
-            setTimeout(() => {
-                this.loadNextBatch(sound, remainingFiles, endIndex);
-            }, 500); // 500ms delay between batches
-        } else {
-            sound.loadingInBackground = false;
-            console.log(`🎉 Background loading complete for ${sound.config.displayName}: ${sound.audioElements.length} total files loaded`);
+        sound.loadingInBackground = false;
+        
+        // Reset usage counter when we add new files
+        sound.filesUsed = Math.max(0, sound.filesUsed - 2);
+        
+        if (sound.pendingFiles.length === 0) {
+            console.log(`🎉 All files loaded for ${sound.config.displayName}: ${sound.audioElements.length} total files`);
         }
     }
     
@@ -580,6 +585,10 @@ export class AmbientSoundsTool extends AudioToolBase {
         
         sound.isPlaying = true;
         sound.currentIndex = randomIndex;
+        sound.filesUsed++;
+        
+        // Check if we need to load more files after using this one
+        this.loadNextBatchIfNeeded(sound);
     }
     
     rotateSound(soundName) {
@@ -608,9 +617,13 @@ export class AmbientSoundsTool extends AudioToolBase {
                     const nextElement = sound.audioElements[nextIndex];
                     
                     sound.currentIndex = nextIndex;
+                    sound.filesUsed++;
                     nextElement.audio.volume = 0;
                     nextElement.audio.currentTime = 0;
                     nextElement.audio.play();
+                    
+                    // Check if we need to load more files after rotation
+                    this.loadNextBatchIfNeeded(sound);
                     
                     // Fade in new sound
                     const fadeInInterval = setInterval(() => {
