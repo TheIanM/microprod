@@ -1,0 +1,45 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "enables the default permissions",
+  "windows": [
+    "splash",
+    "app"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-set-size",
+    "core:window:allow-inner-size",
+    "core:window:allow-set-position",
+    "core:window:allow-available-monitors",
+    "core:window:allow-current-monitor",
+    "core:window:allow-outer-position",
+    "core:window:allow-close",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:webview:allow-create-webview-window",
+    "fs:default",
+    "fs:allow-read-dir",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    "fs:allow-create",
+    "fs:allow-mkdir",
+    "http:default"
+  ],
+  "scopes": [
+    {
+      "allow": [
+        "$APPDATA/ucanduit/**",
+        "$HOME/.ucanduit/**",
+        "$CWD/public/audio/**"
+      ]
+    },
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://weather.gc.ca/*" },
+        { "url": "https://dd.weather.gc.ca/*" }
+      ]
+    }
+  ]
+}

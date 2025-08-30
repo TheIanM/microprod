@@ -1,0 +1,186 @@
+/* Base Tool Styles - Shared across all tools */
+
+/* Button Styles */
+.tool-btn {
+    background: var(--background);
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
+    border-radius: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tool-btn:hover {
+    background: var(--text-primary);
+    color: var(--background);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.tool-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.tool-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+.tool-btn.primary {
+    background: #4ecf9d;
+    border-color: #4ecf9d;
+    color: white;
+}
+
+.tool-btn.primary:hover {
+    background: #3fb085;
+    border-color: #3fb085;
+}
+
+.tool-btn.secondary {
+    background: #3f88c5;
+    border-color: #3f88c5;
+    color: white;
+}
+
+.tool-btn.secondary:hover {
+    background: #2c6b9f;
+    border-color: #2c6b9f;
+}
+
+.tool-btn.danger {
+    background: #d72638;
+    border-color: #d72638;
+    color: white;
+}
+
+.tool-btn.danger:hover {
+    background: #b01e2e;
+    border-color: #b01e2e;
+}
+
+/* Input Styles */
+.tool-input {
+    background: var(--background);
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.tool-input:focus {
+    outline: none;
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px rgba(78, 207, 157, 0.2);
+}
+
+.tool-textarea {
+    background: var(--background);
+    color: var(--text-primary);
+    border: 2px solid var(--text-primary);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Quicksand', sans-serif;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 1.5;
+    transition: all 0.2s ease;
+    width: 100%;
+    box-sizing: border-box;
+    resize: vertical;
+    min-height: 120px;
+}
+
+.tool-textarea:focus {
+    outline: none;
+    border-color: var(--success);
+    box-shadow: 0 0 0 3px rgba(78, 207, 157, 0.2);
+}
+
+/* Container Styles */
+.tool-container {
+    padding: 15px;
+    background: transparent;
+    border-radius: 12px;
+    margin: 8px 0;
+}
+
+.tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid rgba(42, 45, 52, 0.2);
+}
+
+.tool-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.tool-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.tool-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.tool-row.justify-between {
+    justify-content: space-between;
+}
+
+.tool-row.center {
+    justify-content: center;
+}
+
+/* Responsive Styles */
+@media (max-height: 250px) {
+    .tool-container {
+        padding: 10px;
+    }
+    
+    .tool-content {
+        gap: 8px;
+    }
+    
+    .tool-row {
+        gap: 6px;
+    }
+}
+
+@media (max-width: 250px) {
+    .tool-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .tool-row.keep-horizontal {
+        flex-direction: row;
+        align-items: center;
+    }
+}
