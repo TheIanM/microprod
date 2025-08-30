@@ -124,14 +124,14 @@ export class TodoListTool extends ToolBase {
         const breadcrumb = this.find('.todo-breadcrumb');
         
         if (this.currentView === 'lists') {
-            breadcrumb.innerHTML = '<i class="iconoir-list"></i> Todo Lists';
+            breadcrumb.innerHTML = '<i class="iconoir-task-list"></i> Todo Lists';
             content.innerHTML = this.renderLists();
             this.bindContentEvents();
         } else if (this.currentView === 'items') {
             const activeList = this.lists[this.activeListId];
             breadcrumb.innerHTML = `
                 <button class="tool-btn back-button">← Back</button>
-                <i class="iconoir-clipboard"></i> ${activeList.name}
+                <i class="iconoir-clipboard-check"></i> ${activeList.name}
             `;
             content.innerHTML = this.renderItems();
             
@@ -151,7 +151,7 @@ export class TodoListTool extends ToolBase {
         if (listIds.length === 0) {
             return `
                 <div style="text-align: center; color: #6c757d; padding: 40px 20px;">
-                    <div style="font-size: 48px; margin-bottom: 10px;"><i class="iconoir-list"></i></div>
+                    <div style="font-size: 48px; margin-bottom: 10px;"><i class="iconoir-task-list"></i></div>
                     <div style="font-weight: 600; margin-bottom: 5px;">No lists yet</div>
                     <div style="font-size: 14px;">Click "+ Add" to create your first todo list</div>
                 </div>
@@ -181,7 +181,7 @@ export class TodoListTool extends ToolBase {
         if (!activeList || activeList.items.length === 0) {
             return `
                 <div style="text-align: center; color: #6c757d; padding: 40px 20px;">
-                    <div style="font-size: 48px; margin-bottom: 10px;"><i class="iconoir-clipboard"></i></div>
+                    <div style="font-size: 48px; margin-bottom: 10px;"><i class="iconoir-clipboard-check"></i></div>
                     <div style="font-weight: 600; margin-bottom: 5px;">No items yet</div>
                     <div style="font-size: 14px;">Click "+ Add" to add your first todo item</div>
                 </div>

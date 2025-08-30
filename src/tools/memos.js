@@ -29,7 +29,7 @@ export class MemosTool extends ToolBase {
         if (!document.querySelector('link[href*="memos.css"]')) {
             const link = document.createElement('link');
             link.rel = 'stylesheet';
-            link.href = './tools/memos.css';
+            link.href = 'tools/memos.css';
             document.head.appendChild(link);
         }
     }
@@ -258,7 +258,7 @@ export class MemosTool extends ToolBase {
         try {
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
-                const url = memoId ? `./memo-window.html?memoId=${memoId}` : './memo-window.html';
+                const url = memoId ? `../src/memo-window.html?memoId=${memoId}` : '../src/memo-window.html';
                 window.open(url, '_blank', 'width=600,height=500');
                 this.updateStatus('Opened memo window (browser mode)', 'primary', 2000);
                 return;
@@ -269,7 +269,7 @@ export class MemosTool extends ToolBase {
                 const { webviewWindow } = window.__TAURI__;
                 
                 // Create memo window using unique label for each memo
-                const url = memoId ? `memo-window.html?memoId=${memoId}` : 'memo-window.html';
+                const url = memoId ? `../src/memo-window.html?memoId=${memoId}` : '../src/memo-window.html';
                 const windowLabel = memoId ? `memo-window-${memoId}` : `memo-window-new-${Date.now()}`;
                 const windowTitle = memoId && this.memos[memoId] ? 
                     `${this.memos[memoId].title} - ucanduit` : 

@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Memos - ucanduit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="iconoir.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="tools/tool-base.css">
+    <link rel="stylesheet" href="tools/memos.css">
+    
+</head>
+<body>
+    <!-- Animated background circles -->
+    <div class="animated-background" id="animated-background"></div>
+    <div class="memo-window-container">
+        <div class="memo-window-header">
+            <h1 class="memo-window-title" id="memo-window-title"><i class="iconoir-notes"></i> Quick Memos</h1>
+        </div>
+
+        <div class="memo-window-content">
+            <div class="memo-toolbar">
+                <button class="memo-format-btn" data-format="bold" title="Bold (Ctrl+B)">
+                    <strong>B</strong>
+                </button>
+                <button class="memo-format-btn" data-format="italic" title="Italic (Ctrl+I)">
+                    <em>I</em>
+                </button>
+                <button class="memo-format-btn" data-format="clear" title="Clear Formatting">
+                    Clear
+                </button>
+                <button class="tool-btn danger" id="clear-memo-btn" title="Clear All Content">
+                    <i class="iconoir-bin"></i> Clear All
+                </button>
+            </div>
+            
+            <textarea 
+                class="memo-editor" 
+                id="memo-editor"
+                placeholder="Start typing your notes here...
+
+Keyboard shortcuts:
+• Ctrl+B for **bold**
+• Ctrl+I for *italic* 
+• Type URLs and they'll become clickable links
+• Everything auto-saves as you type
+
+This dedicated memo window gives you plenty of space to write!"
+                spellcheck="true"
+            ></textarea>
+            
+            <div class="memo-status" id="memo-status">
+                Ready
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import and use the memos tool logic
+        import { MemosTool } from './tools/memos.js';
+        import { createAnimatedBackground, getDefaultCircles } from './animated-background.js';
+
+        let memoTool;
+        let currentWindow;
+
+        async function initializeMemoWindow() {
+            try {
+                // Wait for Tauri APIs
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                while (attempts < maxAttempts) {
+                    if (window.__TAURI__ && window.__TAURI__.window) {
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (attempts >= maxAttempts) {
+                    console.warn('Tauri API not available, running in browser mode');
+                }
+
+                // Get current window reference
+                if (window.__TAURI__) {
+                    const { getCurrentWindow } = window.__TAURI__.window;
+                    currentWindow = getCurrentWindow();
+                    window.tauriWindow = currentWindow;
+                }
+
+                // Create a container for the memo tool
+                const container = document.createElement('div');
+                
+                // Create memo tool instance with custom container
+                memoTool = new MemoToolWindow(container);
+                
+                // Bind window controls
+                bindWindowControls();
+
+            } catch (error) {
+                console.error('Error initializing memo window:', error);
+                document.getElementById('memo-status').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        // Custom memo tool class for the dedicated window
+        class MemoToolWindow {
+            constructor(container) {
+                this.container = container;
+                this.memos = {}; // Multi-memo storage
+                this.currentMemoId = null; // Currently loaded memo
+                this.autoSaveTimeout = null;
+                this.autoSaveDelay = 1000;
+                this.detectedUrls = [];
+                
+                // Get DOM elements
+                this.editor = document.getElementById('memo-editor');
+                this.statusEl = document.getElementById('memo-status');
+                
+                this.init();
+            }
+            
+            async init() {
+                console.log('🚀 Initializing memo window...');
+                
+                // Load memos from storage
+                await this.loadFromStorage();
+                console.log('📁 Storage loaded, memo count:', Object.keys(this.memos).length);
+                
+                // Check for specific memo to load (passed via URL params or global var)
+                await this.checkForSpecificMemo();
+                
+                // Bind events
+                this.bindEvents();
+                
+                // Focus editor
+                setTimeout(() => {
+                    this.editor.focus();
+                }, 100);
+                
+                console.log('✅ Memo window initialization complete');
+                this.updateMemoStatus('Ready ' + this.formatContentLength());
+            }
+            
+            // Load memos using same pattern as main tool
+            async loadFromStorage() {
+                try {
+                    // First try to load from external file using Tauri
+                    if (window.__TAURI__ && window.__TAURI__.core) {
+                        const fileData = await window.__TAURI__.core.invoke('read_json_file', {
+                            filename: 'ucanduit-memos.json'
+                        });
+                        if (fileData) {
+                            this.memos = fileData;
+                            console.log('✅ Memos loaded from external file in window');
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.log('📁 No external memos file found in window, checking localStorage...');
+                }
+                
+                try {
+                    // Fallback to localStorage
+                    const storedMemos = localStorage.getItem('ucanduit_memostool_memos');
+                    if (storedMemos) {
+                        this.memos = JSON.parse(storedMemos);
+                        console.log('✅ Memos loaded from localStorage in window');
+                    } else {
+                        // Check old single memo storage for migration
+                        const oldMemo = localStorage.getItem('ucanduit_memostool_memoContent');
+                        if (oldMemo) {
+                            const content = JSON.parse(oldMemo);
+                            if (content.trim()) {
+                                // Migrate old memo
+                                const memoId = this.generateId();
+                                this.memos[memoId] = this.createMemo('Migrated Note', content, memoId);
+                                await this.saveToStorage();
+                                localStorage.removeItem('ucanduit_memostool_memoContent');
+                                console.log('🔄 Migrated old memo to new format in window');
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Failed to load memos in window:', error);
+                    this.memos = {};
+                }
+            }
+            
+            // Check if a specific memo should be loaded
+            async checkForSpecificMemo() {
+                // Check URL parameters
+                const urlParams = new URLSearchParams(window.location.search);
+                const memoId = urlParams.get('memoId');
+                
+                console.log('🔍 Checking for specific memo:', memoId);
+                console.log('📋 Available memos:', Object.keys(this.memos));
+                
+                // Also check if there's a global variable set by the parent window
+                if (window.loadMemoId) {
+                    console.log('🎯 Loading from global variable:', window.loadMemoId);
+                    this.loadSpecificMemo(window.loadMemoId);
+                    delete window.loadMemoId; // Clean up
+                } else if (memoId) {
+                    if (this.memos[memoId]) {
+                        console.log('✅ Found memo, loading:', memoId);
+                        this.loadSpecificMemo(memoId);
+                    } else {
+                        console.log('❌ Memo not found:', memoId);
+                        this.updateMemoStatus(`Memo not found: ${memoId}`);
+                        // Still create a new memo for the user
+                        this.editor.value = '';
+                    }
+                } else {
+                    // Load most recent memo or create new one
+                    console.log('📝 No specific memo requested, loading recent or new');
+                    const recentMemos = this.getRecentMemos(1);
+                    if (recentMemos.length > 0) {
+                        this.loadSpecificMemo(recentMemos[0].id);
+                    } else {
+                        // New memo
+                        this.editor.value = '';
+                        this.updateMemoStatus('New memo ready');
+                    }
+                }
+            }
+            
+            loadSpecificMemo(memoId) {
+                console.log('🔄 Loading specific memo:', memoId);
+                if (this.memos[memoId]) {
+                    this.currentMemoId = memoId;
+                    this.editor.value = this.memos[memoId].content;
+                    this.updateMemoStatus(`Loaded: ${this.memos[memoId].title}`);
+                    this.updateWindowTitle(this.memos[memoId].title);
+                    console.log('✅ Memo loaded successfully:', this.memos[memoId].title);
+                } else {
+                    console.log('❌ Memo not found in loadSpecificMemo:', memoId);
+                    this.updateMemoStatus(`Error: Memo ${memoId} not found`);
+                }
+            }
+            
+            bindEvents() {
+                const formatBtns = document.querySelectorAll('.memo-format-btn[data-format]');
+                const clearBtn = document.getElementById('clear-memo-btn');
+                
+                // Auto-save on content change
+                this.editor.addEventListener('input', () => {
+                    this.scheduleAutoSave();
+                    this.processLinks();
+                });
+                
+                // Handle clicks for link detection  
+                this.editor.addEventListener('click', (e) => {
+                    this.handleLinkClick(e);
+                });
+                
+                // Show link preview on hover/mouse move
+                this.editor.addEventListener('mousemove', (e) => {
+                    this.handleLinkHover(e);
+                });
+                
+                // Keyboard shortcuts
+                this.editor.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                        switch (e.key.toLowerCase()) {
+                            case 'b':
+                                e.preventDefault();
+                                this.toggleFormat('bold');
+                                break;
+                            case 'i':
+                                e.preventDefault();
+                                this.toggleFormat('italic');
+                                break;
+                        }
+                    }
+                });
+                
+                // Format buttons
+                formatBtns.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const format = btn.getAttribute('data-format');
+                        if (format === 'clear') {
+                            this.clearFormatting();
+                        } else {
+                            this.toggleFormat(format);
+                        }
+                    });
+                });
+                
+                // Clear all button
+                clearBtn?.addEventListener('click', () => {
+                    if (confirm('Are you sure you want to clear all memo content? This cannot be undone.')) {
+                        this.clearAllContent();
+                    }
+                });
+                
+                // Process existing links
+                this.processLinks();
+            }
+            
+            scheduleAutoSave() {
+                if (this.autoSaveTimeout) {
+                    clearTimeout(this.autoSaveTimeout);
+                }
+                
+                this.autoSaveTimeout = setTimeout(() => {
+                    this.autoSave();
+                }, this.autoSaveDelay);
+                
+                this.updateMemoStatus('Typing...');
+            }
+            
+            async autoSave() {
+                const content = this.editor.value;
+                
+                try {
+                    if (this.currentMemoId && this.memos[this.currentMemoId]) {
+                        // Update existing memo
+                        this.memos[this.currentMemoId].content = content;
+                        const newTitle = this.generateTitle(content);
+                        this.memos[this.currentMemoId].title = newTitle;
+                        this.memos[this.currentMemoId].preview = this.generatePreview(content);
+                        this.memos[this.currentMemoId].updatedAt = new Date().toISOString();
+                        this.updateWindowTitle(newTitle);
+                    } else if (content.trim()) {
+                        // Create new memo if there's content
+                        const memoId = this.generateId();
+                        this.currentMemoId = memoId;
+                        this.memos[memoId] = this.createMemo(null, content, memoId);
+                        this.updateWindowTitle(this.memos[memoId].title);
+                    }
+                    
+                    if (content.trim()) {
+                        await this.saveToStorage();
+                        this.updateMemoStatus('Saved ' + this.formatContentLength());
+                    }
+                } catch (error) {
+                    console.error('Save failed:', error);
+                    this.updateMemoStatus('Save failed!');
+                }
+            }
+            
+            formatContentLength() {
+                const content = this.editor.value;
+                const wordCount = content.trim().split(/\s+/).filter(w => w.length > 0).length;
+                const charCount = content.length;
+                
+                if (charCount === 0) return '(empty)';
+                return `(${wordCount} words, ${charCount} chars)`;
+            }
+            
+            updateMemoStatus(message) {
+                if (this.statusEl) {
+                    this.statusEl.textContent = message;
+                }
+            }
+            
+            updateWindowTitle(title) {
+                // Update window title in header
+                const titleEl = document.getElementById('memo-window-title');
+                if (titleEl) {
+                    titleEl.innerHTML = `<i class="iconoir-notes"></i> ${title}`;
+                }
+                
+                // Update browser/Tauri window title
+                if (window.__TAURI__ && currentWindow) {
+                    currentWindow.setTitle(`${title} - ucanduit`).catch(console.error);
+                } else {
+                    document.title = `${title} - ucanduit`;
+                }
+            }
+            
+            toggleFormat(formatType) {
+                const start = this.editor.selectionStart;
+                const end = this.editor.selectionEnd;
+                const selectedText = this.editor.value.substring(start, end);
+                
+                if (selectedText.length === 0) {
+                    this.updateMemoStatus(`Select text first to apply ${formatType} formatting`);
+                    return;
+                }
+                
+                let markers;
+                
+                switch (formatType) {
+                    case 'bold':
+                        markers = '**';
+                        break;
+                    case 'italic':
+                        markers = '*';
+                        break;
+                    default:
+                        return;
+                }
+                
+                // Check if text is already formatted
+                const beforeText = this.editor.value.substring(start - markers.length, start);
+                const afterText = this.editor.value.substring(end, end + markers.length);
+                
+                let formattedText;
+                
+                if (beforeText === markers && afterText === markers) {
+                    // Remove formatting
+                    formattedText = selectedText;
+                    this.editor.value = this.editor.value.substring(0, start - markers.length) + 
+                                      formattedText + 
+                                      this.editor.value.substring(end + markers.length);
+                    this.editor.setSelectionRange(start - markers.length, start - markers.length + formattedText.length);
+                } else {
+                    // Add formatting
+                    formattedText = markers + selectedText + markers;
+                    this.editor.value = this.editor.value.substring(0, start) + 
+                                      formattedText + 
+                                      this.editor.value.substring(end);
+                    this.editor.setSelectionRange(start, start + formattedText.length);
+                }
+                
+                this.editor.focus();
+                this.scheduleAutoSave();
+                this.processLinks();
+                this.updateMemoStatus(`Applied ${formatType} formatting`);
+            }
+            
+            clearFormatting() {
+                const start = this.editor.selectionStart;
+                const end = this.editor.selectionEnd;
+                const selectedText = this.editor.value.substring(start, end);
+                
+                if (selectedText.length === 0) {
+                    this.updateMemoStatus('Select text first to clear formatting');
+                    return;
+                }
+                
+                const cleanText = selectedText
+                    .replace(/\*\*(.*?)\*\*/g, '$1')
+                    .replace(/\*(.*?)\*/g, '$1');
+                
+                this.editor.value = this.editor.value.substring(0, start) + 
+                                  cleanText + 
+                                  this.editor.value.substring(end);
+                                  
+                this.editor.setSelectionRange(start, start + cleanText.length);
+                this.editor.focus();
+                
+                this.scheduleAutoSave();
+                this.processLinks();
+                this.updateMemoStatus('Formatting cleared');
+            }
+            
+            clearAllContent() {
+                this.editor.value = '';
+                this.updateMemoStatus('Content cleared');
+                this.editor.focus();
+                this.scheduleAutoSave(); // This will update the current memo
+            }
+            
+            processLinks() {
+                const content = this.editor.value;
+                const urlRegex = /(https?:\/\/[^\s]+|www\.[^\s]+|[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?|\b[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\b)/g;
+                const matches = [];
+                let match;
+                
+                while ((match = urlRegex.exec(content)) !== null) {
+                    matches.push({
+                        url: match[0],
+                        start: match.index,
+                        end: match.index + match[0].length,
+                        isEmail: match[0].includes('@') && !match[0].startsWith('http')
+                    });
+                }
+                
+                this.detectedUrls = matches;
+            }
+            
+            handleLinkClick(event) {
+                if (!this.detectedUrls || this.detectedUrls.length === 0) return;
+                
+                const cursorPosition = this.editor.selectionStart;
+                
+                const clickedUrl = this.detectedUrls.find(urlMatch => 
+                    cursorPosition >= urlMatch.start && cursorPosition <= urlMatch.end
+                );
+                
+                if (clickedUrl) {
+                    event.preventDefault();
+                    this.openUrl(clickedUrl.url, clickedUrl.isEmail);
+                }
+            }
+            
+            handleLinkHover(event) {
+                if (!this.detectedUrls || this.detectedUrls.length === 0) return;
+                
+                const cursorPosition = this.editor.selectionStart;
+                
+                const hoveredUrl = this.detectedUrls.find(urlMatch => 
+                    cursorPosition >= urlMatch.start && cursorPosition <= urlMatch.end
+                );
+                
+                if (hoveredUrl) {
+                    this.editor.style.cursor = 'pointer';
+                    this.updateMemoStatus(`Click to open: ${hoveredUrl.url}`);
+                } else {
+                    this.editor.style.cursor = 'text';
+                }
+            }
+            
+            openUrl(url, isEmail = false) {
+                try {
+                    let finalUrl = url;
+                    
+                    if (isEmail) {
+                        finalUrl = `mailto:${url}`;
+                    } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        finalUrl = `https://${url}`;
+                    }
+                    
+                    if (window.__TAURI__) {
+                        window.__TAURI__.shell.open(finalUrl).catch(error => {
+                            console.error('Error opening URL:', error);
+                            this.updateMemoStatus(`Failed to open: ${url}`);
+                        });
+                    } else {
+                        window.open(finalUrl, '_blank', 'noopener,noreferrer');
+                    }
+                    
+                    this.updateMemoStatus(`Opening: ${url}`);
+                    
+                } catch (error) {
+                    console.error('Error opening URL:', error);
+                    this.updateMemoStatus(`Error opening: ${url}`);
+                }
+            }
+            
+            // Utility methods matching main tool
+            generateId() {
+                return 'memo_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+            }
+            
+            createMemo(title, content, id = null) {
+                const now = new Date();
+                return {
+                    id: id || this.generateId(),
+                    title: title || this.generateTitle(content),
+                    content: content,
+                    preview: this.generatePreview(content),
+                    createdAt: now.toISOString(),
+                    updatedAt: now.toISOString(),
+                    date: now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                };
+            }
+            
+            generateTitle(content) {
+                if (!content || !content.trim()) return 'Untitled Note';
+                
+                // Try to use first line as title
+                const firstLine = content.trim().split('\n')[0];
+                if (firstLine.length > 0) {
+                    // Remove markdown formatting for title
+                    let title = firstLine.replace(/[*_`#]/g, '').trim();
+                    if (title.length > 50) {
+                        title = title.substring(0, 50) + '...';
+                    }
+                    return title || 'Untitled Note';
+                }
+                
+                // Fallback to first few words
+                const words = content.trim().split(/\s+/);
+                return words.slice(0, 8).join(' ') + (words.length > 8 ? '...' : '');
+            }
+            
+            generatePreview(content) {
+                if (!content || !content.trim()) return '';
+                
+                // Remove markdown formatting and get preview
+                const cleaned = content.replace(/[*_`#]/g, '').replace(/\n/g, ' ').trim();
+                return cleaned.substring(0, 80) + (cleaned.length > 80 ? '...' : '');
+            }
+            
+            getRecentMemos(limit = 3) {
+                if (!this.memos) return [];
+                return Object.values(this.memos)
+                    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+                    .slice(0, limit);
+            }
+            
+            async saveToStorage() {
+                try {
+                    // First try to save to external file using Tauri
+                    if (window.__TAURI__ && window.__TAURI__.core) {
+                        await window.__TAURI__.core.invoke('write_json_file', {
+                            filename: 'ucanduit-memos.json',
+                            data: this.memos
+                        });
+                        console.log('\u2705 Memos saved to external file from window');
+                    } else {
+                        // Fallback to localStorage if Tauri not available
+                        localStorage.setItem('ucanduit_memostool_memos', JSON.stringify(this.memos));
+                        console.log('\u2705 Memos saved to localStorage from window');
+                    }
+                } catch (error) {
+                    console.error('\u274c Failed to save memos from window:', error);
+                }
+            }
+        }
+
+        function bindWindowControls() {
+            // Handle window close event to save before closing
+            if (currentWindow) {
+                currentWindow.onCloseRequested(async () => {
+                    // Save before closing
+                    if (memoTool && memoTool.autoSaveTimeout) {
+                        clearTimeout(memoTool.autoSaveTimeout);
+                        await memoTool.autoSave();
+                    }
+                });
+            }
+        }
+
+        // Global function to load a specific memo (called by parent window)
+        window.loadSpecificMemo = function(memoId) {
+            if (memoTool && memoTool.memos[memoId]) {
+                memoTool.loadSpecificMemo(memoId);
+            } else {
+                // Store the ID to load after initialization
+                window.loadMemoId = memoId;
+            }
+        };
+        
+        // Initialize dark mode from saved preference
+        function initializeDarkMode() {
+            try {
+                const savedTheme = localStorage.getItem('ucanduit-theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (error) {
+                console.log('Could not load theme preference:', error);
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeDarkMode();
+            // Create animated background with smaller circles for memo windows
+            createAnimatedBackground({ 
+                containerId: 'animated-background',
+                circles: getSmallWindowCircles()
+            });
+            initializeMemoWindow();
+        });
+    </script>
+</body>
+</html>

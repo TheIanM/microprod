@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Details - ucanduit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="iconoir.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="tools/tool-base.css">
+    <link rel="stylesheet" href="tools/weather.css">
+    <link rel="stylesheet" href="tools/weather-window.css">
+</head>
+<body>
+    <!-- Animated background circles -->
+    <div class="animated-background" id="animated-background"></div>
+    
+    <div class="weather-window-container">
+        <div class="weather-window-header">
+            <h1 class="weather-window-title" id="weather-window-title"><i class="iconoir-sun-light"></i> Weather Details</h1>
+        </div>
+
+        <div class="weather-window-content">
+            <div class="weather-details-container">
+                <div class="weather-header">
+                    <canvas class="weather-header-icon" id="main-weather-icon" width="64" height="64"></canvas>
+                    <div class="weather-header-info">
+                        <h1 id="weather-temperature">Loading...</h1>
+                        <p class="location" id="weather-location">Getting weather data...</p>
+                    </div>
+                </div>
+                
+                <!-- Current Conditions Card - Full Width -->
+                <div class="weather-card weather-card-full">
+                    <h3>
+                        <canvas class="weather-card-icon" id="current-icon" width="20" height="20"></canvas>
+                        Current Conditions
+                    </h3>
+                    <div class="current-details" id="current-details">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- Today's Forecast Card - Full Width -->
+                <div class="weather-card weather-card-full">
+                    <h3>
+                        <canvas class="weather-card-icon" id="forecast-icon" width="20" height="20"></canvas>
+                        Today's Forecast
+                    </h3>
+                    <div id="forecast-details">
+                        <div class="loading-details">
+                            Loading forecast data...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./libs/skycons.js"></script>
+    <script type="module">
+        import { createAnimatedBackground, getSmallWindowCircles } from './animated-background.js';
+
+        let currentWindow;
+        
+        class WeatherDetailsWindow {
+            constructor() {
+                this.skycons = new Skycons({ 
+                    color: getComputedStyle(document.documentElement)
+                        .getPropertyValue('--text-primary').trim() || '#2a2d34',
+                    resizeClear: true 
+                });
+                this.weatherData = null;
+                this.location = null;
+                
+                this.init();
+            }
+            
+            async init() {
+                console.log('🚀 Initializing weather details window...');
+                
+                // Wait for Tauri APIs
+                await this.waitForTauri();
+                
+                // Load weather data from storage
+                await this.loadWeatherData();
+                
+                // Render the weather details
+                this.render();
+                
+                console.log('✅ Weather details window initialized');
+            }
+            
+            async waitForTauri() {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                while (attempts < maxAttempts) {
+                    if (window.__TAURI__ && window.__TAURI__.window) {
+                        const { getCurrentWindow } = window.__TAURI__.window;
+                        currentWindow = getCurrentWindow();
+                        window.tauriWindow = currentWindow;
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (attempts >= maxAttempts) {
+                    console.warn('Tauri API not available, running in browser mode');
+                }
+            }
+            
+            async loadWeatherData() {
+                try {
+                    // Load weather data from storage (same as main weather tool)
+                    let weatherData = null;
+                    let currentLocation = null;
+                    
+                    if (window.__TAURI__ && window.__TAURI__.core) {
+                        try {
+                            const fileData = await window.__TAURI__.core.invoke('read_json_file', {
+                                filename: 'ucanduit-weather.json'
+                            });
+                            if (fileData) {
+                                weatherData = fileData.weatherData;
+                                currentLocation = fileData.currentLocation;
+                                console.log('✅ Weather data loaded from external file');
+                            }
+                        } catch (error) {
+                            console.log('📁 No external weather file found');
+                        }
+                    }
+                    
+                    // Fallback to localStorage
+                    if (!weatherData) {
+                        const savedWeather = localStorage.getItem('ucanduit_weathertool_weatherData');
+                        const savedLocation = localStorage.getItem('ucanduit_weathertool_currentLocation');
+                        
+                        if (savedWeather) {
+                            weatherData = JSON.parse(savedWeather);
+                        }
+                        if (savedLocation) {
+                            currentLocation = JSON.parse(savedLocation);
+                        }
+                        console.log('✅ Weather data loaded from localStorage');
+                    }
+                    
+                    if (weatherData && currentLocation) {
+                        this.weatherData = weatherData;
+                        this.location = currentLocation;
+                    } else {
+                        throw new Error('No weather data available');
+                    }
+                    
+                } catch (error) {
+                    console.error('Error loading weather data:', error);
+                    this.renderError('No weather data available. Please check weather in the main app first.');
+                }
+            }
+            
+            render() {
+                if (!this.weatherData) return;
+                
+                const weather = this.weatherData;
+                
+                // Update window title
+                this.updateWindowTitle(`${this.location} Weather`);
+                
+                // Update header
+                document.getElementById('weather-temperature').textContent = 
+                    `${Math.round(weather.temperature || 0)}°C`;
+                document.getElementById('weather-location').textContent = 
+                    `${this.location} • ${this.getConditionText(weather.condition)}`;
+                
+                // Initialize main weather icon
+                this.skycons.add('main-weather-icon', this.getWeatherIcon(weather.condition));
+                this.skycons.add('current-icon', 'clear-day');
+                this.skycons.add('forecast-icon', 'partly-cloudy-day');
+                
+                // Render current details (includes all weather info now)
+                this.renderCurrentDetails();
+                
+                // Render forecast (mock for now)
+                this.renderForecast();
+                
+                this.skycons.play();
+            }
+            
+            renderCurrentDetails() {
+                const weather = this.weatherData;
+                const container = document.getElementById('current-details');
+                
+                container.innerHTML = `
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="temp-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">Temperature:</div>
+                            <div class="detail-value">${Math.round(weather.temperature || 0)}°C</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="feels-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">Feels Like:</div>
+                            <div class="detail-value">${Math.round(weather.feelsLike || weather.temperature || 0)}°C</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="humidity-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">Humidity:</div>
+                            <div class="detail-value">${weather.humidity || 0}%</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="uv-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">UV Index:</div>
+                            <div class="detail-value">${weather.uvIndex || 0}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="air-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">Air Quality:</div>
+                            <div class="detail-value">${weather.airQuality || 'N/A'}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="updated-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">Updated:</div>
+                            <div class="detail-value">${this.formatUpdateTime(weather.timestamp)}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="sunrise-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">Sunrise:</div>
+                            <div class="detail-value">6:24 AM</div>
+                        </div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <canvas class="detail-icon" width="16" height="16" id="sunset-detail"></canvas>
+                        <div class="detail-content">
+                            <div class="detail-label">Sunset:</div>
+                            <div class="detail-value">7:45 PM</div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add icons for all detail items
+                this.skycons.add('temp-detail', 'clear-day');
+                this.skycons.add('feels-detail', 'partly-cloudy-day');
+                this.skycons.add('humidity-detail', 'rain');
+                this.skycons.add('uv-detail', 'clear-day');
+                this.skycons.add('air-detail', 'wind');
+                this.skycons.add('updated-detail', 'cloudy');
+                this.skycons.add('sunrise-detail', 'clear-day');
+                this.skycons.add('sunset-detail', 'clear-night');
+            }
+            
+            renderForecast() {
+                const container = document.getElementById('forecast-details');
+                
+                // Mock forecast data for now - TODO: Replace with real API data
+                const forecast = [
+                    { time: 'Now', condition: this.weatherData.condition, temp: Math.round(this.weatherData.temperature), precip: 0 },
+                    { time: '14:00', condition: 'cloudy', temp: Math.round(this.weatherData.temperature) + 2, precip: 10 },
+                    { time: '17:00', condition: 'rain', temp: Math.round(this.weatherData.temperature) - 1, precip: 60 },
+                    { time: '20:00', condition: 'cloudy', temp: Math.round(this.weatherData.temperature) - 3, precip: 20 },
+                ];
+                
+                container.innerHTML = forecast.map((item, index) => `
+                    <div class="forecast-item">
+                        <div class="forecast-time">${item.time}</div>
+                        <div class="forecast-condition">
+                            <canvas class="forecast-icon" id="forecast-${index}" width="18" height="18"></canvas>
+                            <span>${this.getConditionText(item.condition)}</span>
+                        </div>
+                        <div class="forecast-temp">${item.temp}°C</div>
+                        <div class="forecast-precip">${item.precip}%</div>
+                    </div>
+                `).join('');
+                
+                // Add icons for forecast items
+                forecast.forEach((item, index) => {
+                    this.skycons.add(`forecast-${index}`, this.getWeatherIcon(item.condition));
+                });
+            }
+            
+            getWeatherIcon(condition) {
+                const mapping = {
+                    'clear': 'clear-day',
+                    'sunny': 'clear-day', 
+                    'partly-cloudy': 'partly-cloudy-day',
+                    'cloudy': 'cloudy',
+                    'overcast': 'cloudy',
+                    'rain': 'rain',
+                    'drizzle': 'rain',
+                    'snow': 'snow',
+                    'sleet': 'sleet',
+                    'wind': 'wind',
+                    'fog': 'fog',
+                    'mist': 'fog'
+                };
+                return mapping[condition?.toLowerCase()] || 'cloudy';
+            }
+            
+            getConditionText(condition) {
+                const textMap = {
+                    'clear': 'Clear',
+                    'sunny': 'Sunny',
+                    'partly-cloudy': 'Partly Cloudy',
+                    'cloudy': 'Cloudy',
+                    'overcast': 'Overcast',
+                    'rain': 'Rain',
+                    'drizzle': 'Drizzle',
+                    'snow': 'Snow',
+                    'sleet': 'Sleet',
+                    'wind': 'Windy',
+                    'fog': 'Fog',
+                    'mist': 'Misty'
+                };
+                return textMap[condition?.toLowerCase()] || 'Cloudy';
+            }
+            
+            formatUpdateTime(timestamp) {
+                if (!timestamp) return 'Unknown';
+                const date = new Date(timestamp);
+                return date.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+            }
+            
+            updateWindowTitle(title) {
+                // Update window title in header
+                const titleEl = document.getElementById('weather-window-title');
+                if (titleEl) {
+                    titleEl.innerHTML = `<i class="iconoir-sun-light"></i> ${title}`;
+                }
+                
+                // Update browser/Tauri window title
+                if (currentWindow) {
+                    currentWindow.setTitle(`${title} - ucanduit`).catch(console.error);
+                } else {
+                    document.title = `${title} - ucanduit`;
+                }
+            }
+            
+            renderError(message) {
+                document.getElementById('weather-temperature').textContent = 'No Data';
+                document.getElementById('weather-location').textContent = message;
+                
+                document.getElementById('current-details').innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; color: #d72638; padding: 20px;">
+                        ${message}
+                    </div>
+                `;
+                
+                document.getElementById('forecast-details').innerHTML = `
+                    <div style="text-align: center; color: #d72638; padding: 20px;">
+                        ${message}
+                    </div>
+                `;
+                
+                document.getElementById('extended-details').innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; color: #d72638; padding: 20px;">
+                        ${message}
+                    </div>
+                `;
+            }
+        }
+        
+        // Initialize dark mode from saved preference
+        function initializeDarkMode() {
+            try {
+                const savedTheme = localStorage.getItem('ucanduit-theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (error) {
+                console.log('Could not load theme preference:', error);
+            }
+        }
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeDarkMode();
+            // Create animated background with smaller circles for weather window
+            createAnimatedBackground({ 
+                containerId: 'animated-background',
+                circles: getSmallWindowCircles()
+            });
+            
+            new WeatherDetailsWindow();
+        });
+    </script>
+</body>
+</html>
