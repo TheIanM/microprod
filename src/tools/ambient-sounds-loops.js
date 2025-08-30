@@ -296,6 +296,13 @@ export class AmbientSoundsTool extends AudioToolBase {
             this.masterGain = this.audioContext.createGain();
             this.masterGain.connect(this.audioContext.destination);
             
+            // Create analyzer for real-time waveform data
+            this.analyser = this.audioContext.createAnalyser();
+            this.analyser.fftSize = 512; // 256 frequency bins
+            this.analyser.smoothingTimeConstant = 0.8;
+            this.masterGain.connect(this.analyser);
+            this.frequencyData = new Uint8Array(this.analyser.frequencyBinCount);
+            
             // Initialize sound placeholders (no file loading yet)
             Object.entries(this.soundConfigs).forEach(([name, config]) => {
                 this.sounds[name] = {
@@ -416,7 +423,7 @@ export class AmbientSoundsTool extends AudioToolBase {
                 console.warn(`❌ Web Audio API failed for ${file}: ${webAudioError.message}`);
                 
                 try {
-                    // HTML5 Audio fallback
+                    // HTML5 Audio fallback with Web Audio API connection
                     const audio = new Audio();
                     audio.crossOrigin = 'anonymous';
                     audio.preload = 'none';
@@ -434,6 +441,20 @@ export class AmbientSoundsTool extends AudioToolBase {
                     
                     audio.src = assetUrl;
                     audio.load();
+                    
+                    // Connect HTML5 audio to Web Audio API for analysis
+                    let mediaSource = null;
+                    let gainNode = null;
+                    if (this.audioContext) {
+                        try {
+                            mediaSource = this.audioContext.createMediaElementSource(audio);
+                            gainNode = this.audioContext.createGain();
+                            mediaSource.connect(gainNode);
+                            gainNode.connect(this.masterGain);
+                        } catch (e) {
+                            console.warn('Failed to connect HTML5 audio to Web Audio API:', e);
+                        }
+                    }
                     
                     await new Promise((resolve, reject) => {
                         audio.addEventListener('canplaythrough', resolve);
@@ -463,7 +484,7 @@ export class AmbientSoundsTool extends AudioToolBase {
                     });
                     
                     console.log(`✅ HTML5 Audio fallback success: ${file}`);
-                    return { file, audio, useWebAudio: false };
+                    return { file, audio, useWebAudio: false, mediaSource, gainNode };
                     
                 } catch (html5Error) {
                     console.error(`❌ Both Web Audio API and HTML5 Audio failed for ${file}:`, html5Error.message);
@@ -571,7 +592,15 @@ export class AmbientSoundsTool extends AudioToolBase {
         } else {
             // HTML5 Audio playback
             selectedElement.audio.currentTime = 0;
-            selectedElement.audio.volume = sound.volume;
+            
+            // Use Web Audio API gain control if available, otherwise fallback to HTML5 volume
+            if (selectedElement.gainNode) {
+                selectedElement.gainNode.gain.value = sound.volume;
+                selectedElement.audio.volume = 1.0; // Let Web Audio API handle volume
+            } else {
+                selectedElement.audio.volume = sound.volume;
+            }
+            
             selectedElement.audio.play();
         }
         
@@ -618,7 +647,14 @@ export class AmbientSoundsTool extends AudioToolBase {
                     
                     sound.currentIndex = nextIndex;
                     sound.filesUsed++;
-                    nextElement.audio.volume = 0;
+                    
+                    // Set initial volume and start playing
+                    if (nextElement.gainNode) {
+                        nextElement.gainNode.gain.value = 0;
+                        nextElement.audio.volume = 1.0;
+                    } else {
+                        nextElement.audio.volume = 0;
+                    }
                     nextElement.audio.currentTime = 0;
                     nextElement.audio.play();
                     
@@ -627,10 +663,22 @@ export class AmbientSoundsTool extends AudioToolBase {
                     
                     // Fade in new sound
                     const fadeInInterval = setInterval(() => {
-                        if (nextElement.audio.volume < currentVolume) {
-                            nextElement.audio.volume = Math.min(currentVolume, nextElement.audio.volume + 0.1);
+                        let currentFadeVolume;
+                        if (nextElement.gainNode) {
+                            currentFadeVolume = nextElement.gainNode.gain.value;
+                            if (currentFadeVolume < currentVolume) {
+                                const newVolume = Math.min(currentVolume, currentFadeVolume + 0.1);
+                                nextElement.gainNode.gain.setValueAtTime(newVolume, this.audioContext.currentTime);
+                            } else {
+                                clearInterval(fadeInInterval);
+                            }
                         } else {
-                            clearInterval(fadeInInterval);
+                            currentFadeVolume = nextElement.audio.volume;
+                            if (currentFadeVolume < currentVolume) {
+                                nextElement.audio.volume = Math.min(currentVolume, currentFadeVolume + 0.1);
+                            } else {
+                                clearInterval(fadeInInterval);
+                            }
                         }
                     }, 200);
                     
@@ -705,9 +753,15 @@ export class AmbientSoundsTool extends AudioToolBase {
             if (sound.currentGainNode) {
                 // Web Audio API - update gain node
                 sound.currentGainNode.gain.setValueAtTime(normalizedVolume, this.audioContext.currentTime);
-            } else if (sound.audioElements[sound.currentIndex] && sound.audioElements[sound.currentIndex].audio) {
-                // HTML5 Audio - update volume
-                sound.audioElements[sound.currentIndex].audio.volume = normalizedVolume;
+            } else if (sound.audioElements[sound.currentIndex]) {
+                const currentElement = sound.audioElements[sound.currentIndex];
+                if (currentElement.gainNode) {
+                    // HTML5 + Web Audio API hybrid - update per-element gain node
+                    currentElement.gainNode.gain.setValueAtTime(normalizedVolume, this.audioContext.currentTime);
+                } else if (currentElement.audio) {
+                    // Pure HTML5 Audio fallback - update volume
+                    currentElement.audio.volume = normalizedVolume;
+                }
             }
         }
         
@@ -757,28 +811,46 @@ export class AmbientSoundsTool extends AudioToolBase {
     
     // Get combined audio data for oscilloscope visualization
     getCombinedAudioData() {
-        const combinedData = new Uint8Array(256);
         let hasActiveSound = false;
-        const time = Date.now() * 0.001;
         
+        // Check if any sounds are playing
         for (const [name, sound] of Object.entries(this.sounds)) {
             if (sound.isPlaying && sound.volume > 0) {
                 hasActiveSound = true;
-                const volume = sound.volume * 255;
-                
-                // Generate visualization data based on playing ambient sounds
-                for (let i = 0; i < combinedData.length; i++) {
-                    const freq = (i / combinedData.length) * 10;
-                    // Create smooth, ambient-like waveforms
-                    const amplitude = volume * (0.6 + 0.4 * Math.sin(freq * 2 + time * 0.8)) * 
-                                    (0.8 + 0.3 * Math.sin(freq * 0.5 + time * 0.3));
-                    
-                    combinedData[i] = Math.min(255, combinedData[i] + amplitude * (0.7 + 0.3 * Math.random()));
-                }
+                break;
             }
         }
         
-        return hasActiveSound ? combinedData : null;
+        if (!hasActiveSound || !this.analyser) {
+            return null;
+        }
+        
+        // Get real-time frequency data from the Web Audio API analyzer
+        this.analyser.getByteFrequencyData(this.frequencyData);
+        
+        // Convert frequency data to the expected 256-length array for oscilloscope
+        const visualData = new Uint8Array(256);
+        const sourceLength = this.frequencyData.length; // Should be 256 with fftSize=512
+        
+        if (sourceLength === 256) {
+            // Direct copy if sizes match
+            visualData.set(this.frequencyData);
+        } else {
+            // Resample if sizes don't match
+            for (let i = 0; i < 256; i++) {
+                const sourceIndex = Math.floor((i / 256) * sourceLength);
+                visualData[i] = this.frequencyData[sourceIndex];
+            }
+        }
+        
+        // Apply some smoothing and enhance lower frequencies for better visualization
+        for (let i = 0; i < visualData.length; i++) {
+            // Boost lower frequencies (more visible in ambient sounds)
+            const lowFreqBoost = i < 64 ? 1.3 : 1.0;
+            visualData[i] = Math.min(255, visualData[i] * lowFreqBoost);
+        }
+        
+        return visualData;
     }
     
     // Override base class method to remove specific global reference
