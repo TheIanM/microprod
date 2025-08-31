@@ -4,8 +4,8 @@
  * Base URL: https://dd.weather.gc.ca/
  */
 
-// Import Tauri's HTTP client from local copy
-import { fetch } from '../lib/@tauri-apps/plugin-http/dist-js/index.js';
+// Import Tauri's HTTP client from node_modules
+import { fetch } from '@tauri-apps/plugin-http';
 
 export class WeatherService {
     constructor() {
