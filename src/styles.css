@@ -52,6 +52,7 @@ body {
 .header-title {
     text-align: center;
     flex-grow: 1;
+    margin-left: 25%;
 }
 
 .settings-menu {
@@ -72,7 +73,7 @@ body {
 .ticker-nav-btn {
     background: var(--translucent-bg);
     color: var(--text-primary);
-    border: 2px solid var(--text-primary);
+    border: .1px solid var(--text-primary);
     border-radius: 50%;
     width: 22px;
     height: 22px;
@@ -392,8 +393,8 @@ button:hover {
     padding: 15px 15px 25px 15px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 15px;
-    border: 1px solid var(--not-black);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: .1px solid var(--not-black);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
 }
@@ -448,7 +449,7 @@ button:hover {
 .settings-button {
     background: rgba(255, 255, 255, 0.2);
     color: var(--not-black);
-    border: 1px solid var(--not-black);
+    border: .1px solid var(--not-black);
     border-radius: 50%;
     width: 35px;
     height: 35px;
@@ -475,7 +476,7 @@ button:hover {
     top: 40px;
     right: 0;
     background: var(--not-white);
-    border: 1px solid var(--not-black);
+    border: .1px solid var(--not-black);
     border-radius: 12px;
     padding: 8px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -563,7 +564,7 @@ button:hover {
         width: 18px !important;
         height: 18px !important;
         font-size: 9px !important;
-        border-width: 1px !important;
+        border-width: .1px !important;
     }
     
     #status-badge { 

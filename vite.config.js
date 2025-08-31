@@ -6,11 +6,12 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
+    host: true, // Allow external connections
   },
   envPrefix: ['VITE_', 'TAURI_'],
   build: {
-    target: ['es2021', 'chrome100', 'safari13'],
-    minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
-    sourcemap: !!process.env.TAURI_DEBUG,
+    target: 'safari13',
+    minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
+    sourcemap: !!process.env.TAURI_ENV_DEBUG,
   },
 })

@@ -7,8 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="iconoir.css">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="src/iconoir.css">
+    <link rel="stylesheet" href="src/styles.css">
 </head>
 <body>
     <div class="animated-background" id="animated-bg">
@@ -32,7 +32,7 @@
             <div class="header-container">
                 <h1 class="header-title">ucanduit</h1>
                 <div class="settings-menu">
-                    <div class="settings-button" onclick="toggleSettings()"><i class="iconoir-settings"></i></div>
+                    <div class="settings-button" onclick="toggleSettings()"><i class="iconoir-wrench"></i></div>
                     <div class="settings-dropdown" id="settings-dropdown">
                         <div class="settings-item" onclick="resizeHorizontal()">
                             <span>Horizontal Mode</span>
@@ -131,7 +131,7 @@
     </div>
 
     <!-- Import window management module -->
-    <script type="module" src="window-management.js"></script>
+    <script type="module" src="src/window-management.js"></script>
     
     <script type="module">
         
@@ -224,22 +224,22 @@
                 let ToolClass;
                 
                 if (toolName === 'timer') {
-                    toolModule = await import('./tools/timer.js');
+                    toolModule = await import('./src/tools/timer.js');
                     ToolClass = toolModule.TimerTool;
                 } else if (toolName === 'sounds') {
-                    toolModule = await import('./tools/ambient-sounds.js');
+                    toolModule = await import('./src/tools/ambient-sounds.js');
                     ToolClass = toolModule.FocusNoiseGeneratorTool;
                 } else if (toolName === 'ambient') {
-                    toolModule = await import('./tools/ambient-sounds-loops.js');
+                    toolModule = await import('./src/tools/ambient-sounds-loops.js');
                     ToolClass = toolModule.AmbientSoundsTool;
                 } else if (toolName === 'todos') {
-                    toolModule = await import('./tools/todo-list.js');
+                    toolModule = await import('./src/tools/todo-list.js');
                     ToolClass = toolModule.TodoListTool;
                 } else if (toolName === 'memos') {
-                    toolModule = await import('./tools/memos.js');
+                    toolModule = await import('./src/tools/memos.js');
                     ToolClass = toolModule.MemosTool;
                 } else if (toolName === 'weather') {
-                    toolModule = await import('./tools/weather.js');
+                    toolModule = await import('./src/tools/weather.js');
                     ToolClass = toolModule.WeatherTool;
                 } else {
                     throw new Error(`Unknown tool: ${toolName}`);
@@ -648,7 +648,7 @@
             await window.windowManager.initializeWindow();
             
             // Initialize usage analytics
-            const analytics = await import('./tools/analytics.js');
+            const analytics = await import('./src/tools/analytics.js');
             window.usageAnalytics = new window.UsageAnalytics();
             window.usageAnalytics.init();
             
@@ -833,7 +833,7 @@
             }
             
             useSyntheticWaveform() {
-                this.bufferLength = 128;
+                this.bufferLength = 256;  // Use full circle for complete waveform
                 this.dataArray = new Uint8Array(this.bufferLength);
                 this.isPlaying = true;
                 this.demoMode = true;
@@ -865,12 +865,18 @@
                         combinedData = focusNoiseData || ambientData;
                     }
                     
-                    // Use combined audio data for visualization
-                    if (this.dataArray.length !== combinedData.length) {
-                        this.dataArray = new Uint8Array(combinedData.length);
-                        this.bufferLength = combinedData.length;
+                    // Transform linear frequency data into circular waveform
+                    // Each frequency bin becomes a point around the circle
+                    this.bufferLength = 256;  // Full circle resolution
+                    this.dataArray = new Uint8Array(this.bufferLength);
+                    
+                    // Map frequency data to circular positions
+                    for (let i = 0; i < this.bufferLength; i++) {
+                        // Map circle position to frequency data
+                        const freqIndex = Math.floor((i / this.bufferLength) * combinedData.length);
+                        this.dataArray[i] = combinedData[freqIndex] || 0;
                     }
-                    this.dataArray.set(combinedData);
+                    
                     this.hasActiveAudio = true;
                     
                 } else if (this.analyser && this.isPlaying) {
@@ -906,7 +912,10 @@
                 
                 this.ctx.beginPath();
                 if (this.hasActiveAudio && this.dataArray) {
+                    // Calculate angle step to ensure we cover exactly 2π radians with our data points
                     const angleStep = (Math.PI * 2) / this.bufferLength;
+                    
+                    // Draw exactly bufferLength points around the full circle
                     for (let i = 0; i < this.bufferLength; i++) {
                         const angle = angleStep * i + this.rotation;
                         const amplitude = (this.dataArray[i] / 255) * this.waveformAmplitude;
@@ -921,6 +930,8 @@
                             this.ctx.lineTo(x, y);
                         }
                     }
+                    
+                    // Use closePath() instead of manually drawing to first point
                     this.ctx.closePath();
                 } else {
                     this.ctx.arc(this.centerX, this.centerY, this.baseRadius, 0, Math.PI * 2);
@@ -1013,7 +1024,8 @@
                                  this.canvas.height / window.devicePixelRatio);
                 
                 this.updateWaveformData();
-                this.rotation += 0.015;
+                // Keep rotation static to show actual waveform pattern
+                // this.rotation += 0.015;
                 
                 this.drawOrganicBreathingCircles();
                 this.drawAudioResponsiveBorder();
