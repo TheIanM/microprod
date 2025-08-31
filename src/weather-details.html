@@ -28,7 +28,7 @@
                     <canvas class="weather-header-icon" id="main-weather-icon" width="64" height="64"></canvas>
                     <div class="weather-header-info">
                         <h1 id="weather-temperature">Loading...</h1>
-                        <p class="location" id="weather-location">Getting weather data...</p>
+                        <p class="condition" id="weather-condition">Getting weather data...</p>
                     </div>
                 </div>
                 
@@ -213,8 +213,8 @@
                 // Update header
                 document.getElementById('weather-temperature').textContent = 
                     `${Math.round(weather.temperature || 0)}°C`;
-                document.getElementById('weather-location').textContent = 
-                    `${this.location} • ${this.getConditionText(weather.condition)}`;
+                document.getElementById('weather-condition').textContent = 
+                    this.getConditionText(weather.condition);
                 
                 // Initialize main weather icon
                 this.skycons.add('main-weather-icon', this.getWeatherIcon(weather.condition));
@@ -402,7 +402,7 @@
             
             renderError(message) {
                 document.getElementById('weather-temperature').textContent = 'No Data';
-                document.getElementById('weather-location').textContent = message;
+                document.getElementById('weather-condition').textContent = message;
                 
                 document.getElementById('current-details').innerHTML = `
                     <div style="grid-column: 1 / -1; text-align: center; color: #d72638; padding: 20px;">

@@ -6,6 +6,7 @@
 
 import { ToolBase } from './tool-base.js';
 import { WeatherService } from './weather-service.js';
+import { settings } from './settings.js';
 
 export class WeatherTool extends ToolBase {
     constructor(container) {
@@ -158,40 +159,12 @@ export class WeatherTool extends ToolBase {
     renderInitialState() {
         this.container.innerHTML = `
             <div class="weather-container">
-                <div class="weather-location-input">
-                    <input type="text" 
-                           class="tool-input" 
-                           id="weather-location-${this.id}"
-                           placeholder="Enter postal code or city..."
-                           style="font-size: 11px;">
-                    <button class="tool-btn weather-search-btn" 
-                            id="weather-search-${this.id}">
-                        <i class="iconoir-search"></i>
-                    </button>
-                </div>
-                
-                <div style="text-align: center; padding: 20px; color: #888; font-size: 11px;">
-                    Enter a location to get started
-                </div>
             </div>
         `;
     }
     
     renderLoadingState() {
         this.container.innerHTML = `
-            <div class="weather-container">
-                <div class="weather-location-input">
-                    <input type="text" 
-                           class="tool-input" 
-                           id="weather-location-${this.id}"
-                           value="${this.currentLocation || ''}"
-                           placeholder="Enter postal code or city...">
-                    <button class="tool-btn weather-search-btn" 
-                            id="weather-search-${this.id}">
-                        <i class="iconoir-search"></i>
-                    </button>
-                </div>
-                
                 <div class="weather-loading">
                     Loading weather data...
                 </div>
@@ -209,19 +182,6 @@ export class WeatherTool extends ToolBase {
         
         this.container.innerHTML = `
             <div class="weather-container">
-                <!-- Location Input -->
-                <div class="weather-location-input">
-                    <input type="text" 
-                           class="tool-input" 
-                           id="weather-location-${this.id}"
-                           value="${this.currentLocation || ''}"
-                           placeholder="Enter postal code or city...">
-                    <button class="tool-btn weather-search-btn" 
-                            id="weather-search-${this.id}">
-                        <i class="iconoir-search"></i>
-                    </button>
-                </div>
-                
                 <!-- Current Weather Display -->
                 <div class="weather-current">
                     <div class="weather-icon-container">
@@ -285,25 +245,11 @@ export class WeatherTool extends ToolBase {
     
     renderErrorState(message) {
         this.container.innerHTML = `
-            <div class="weather-container">
-                <div class="weather-location-input">
-                    <input type="text" 
-                           class="tool-input" 
-                           id="weather-location-${this.id}"
-                           value="${this.currentLocation || ''}"
-                           placeholder="Enter postal code or city...">
-                    <button class="tool-btn weather-search-btn" 
-                            id="weather-search-${this.id}">
-                        <i class="iconoir-search"></i>
-                    </button>
-                </div>
-                
                 <div class="weather-error">
                     <div class="weather-error-icon"><i class="iconoir-warning-triangle"></i></div>
                     <div class="weather-error-message">Weather Unavailable</div>
                     <div class="weather-error-details">${this.escapeHtml(message)}</div>
                 </div>
-            </div>
         `;
     }
     
@@ -366,28 +312,10 @@ export class WeatherTool extends ToolBase {
     }
     
     bindEvents() {
-        const locationInput = this.find(`#weather-location-${this.id}`);
-        const searchBtn = this.find(`#weather-search-${this.id}`);
         const refreshBtn = this.find(`#weather-refresh-${this.id}`);
         const detailsBtn = this.find(`#weather-details-${this.id}`);
         
-        // Location search
-        if (locationInput && searchBtn) {
-            const handleSearch = () => {
-                const location = locationInput.value.trim();
-                if (location) {
-                    this.searchLocation(location);
-                }
-            };
-            
-            locationInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    handleSearch();
-                }
-            });
-            
-            searchBtn.addEventListener('click', handleSearch);
-        }
+        // Removed location search functionality - now handled in settings
         
         // Refresh button
         if (refreshBtn) {

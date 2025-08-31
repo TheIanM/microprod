@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - ucanduit</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="tools/settings.css">
+    <link rel="stylesheet" href="iconoir.css">
+</head>
+<body class="settings-window">
+    <div class="settings-container">
+        <!-- Header -->
+        <header class="settings-header">
+            <h1 class="settings-title">
+                <i class="iconoir-settings"></i>
+                Settings
+            </h1>
+            <p class="settings-subtitle">Configure your ucanduit experience</p>
+        </header>
+
+        <!-- Settings Navigation -->
+        <nav class="settings-nav">
+            <button class="nav-tab active" data-section="general">
+                <i class="iconoir-home"></i>
+                General
+            </button>
+            <button class="nav-tab" data-section="weather">
+                <i class="iconoir-cloud"></i>
+                Weather
+            </button>
+            <button class="nav-tab" data-section="timer">
+                <i class="iconoir-timer"></i>
+                Timer
+            </button>
+            <button class="nav-tab" data-section="audio">
+                <i class="iconoir-volume-high"></i>
+                Audio
+            </button>
+            <button class="nav-tab" data-section="appearance">
+                <i class="iconoir-color-palette"></i>
+                Appearance
+            </button>
+        </nav>
+
+        <!-- Settings Content -->
+        <main class="settings-content">
+            
+            <!-- General Section -->
+            <section class="settings-section active" id="general-section">
+                <h2>General Settings</h2>
+                
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Language</span>
+                        <span class="setting-description">Display language for the interface</span>
+                    </label>
+                    <select class="setting-input" id="language-select">
+                        <option value="en">English</option>
+                        <option value="fr">Français</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="start-minimized">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-content">
+                            <span class="setting-name">Start Minimized</span>
+                            <span class="setting-description">Start ucanduit minimized to system tray</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="show-notifications">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-content">
+                            <span class="setting-name">Show Notifications</span>
+                            <span class="setting-description">Display desktop notifications for timer completion and other events</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="check-updates">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-content">
+                            <span class="setting-name">Check for Updates</span>
+                            <span class="setting-description">Automatically check for application updates</span>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Weather Section -->
+            <section class="settings-section" id="weather-section">
+                <h2>Weather Settings</h2>
+                
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Location</span>
+                        <span class="setting-description">Your location for weather updates</span>
+                    </label>
+                    <select class="setting-input" id="weather-locale">
+                        <option value="toronto_on">Toronto, ON</option>
+                        <option value="vancouver_bc">Vancouver, BC</option>
+                        <option value="montreal_qc">Montreal, QC</option>
+                        <option value="calgary_ab">Calgary, AB</option>
+                        <option value="winnipeg_mb">Winnipeg, MB</option>
+                        <option value="halifax_ns">Halifax, NS</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Temperature Units</span>
+                        <span class="setting-description">Display temperature in Celsius or Fahrenheit</span>
+                    </label>
+                    <select class="setting-input" id="weather-units">
+                        <option value="metric">Celsius (°C)</option>
+                        <option value="imperial">Fahrenheit (°F)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Update Interval</span>
+                        <span class="setting-description">How often to refresh weather data</span>
+                    </label>
+                    <select class="setting-input" id="weather-update-interval">
+                        <option value="15">Every 15 minutes</option>
+                        <option value="30">Every 30 minutes</option>
+                        <option value="60">Every hour</option>
+                        <option value="120">Every 2 hours</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Timer Section -->
+            <section class="settings-section" id="timer-section">
+                <h2>Timer Settings</h2>
+                
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Default Duration</span>
+                        <span class="setting-description">Default timer duration when starting a new timer</span>
+                    </label>
+                    <div class="duration-input">
+                        <input type="number" class="setting-input short" id="timer-default-duration" min="1" max="120" value="25">
+                        <span class="input-suffix">minutes</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Timer Presets</span>
+                        <span class="setting-description">Customize quick access timer durations</span>
+                    </label>
+                    <div class="preset-inputs">
+                        <div class="preset-input-row">
+                            <label>Pomodoro:</label>
+                            <input type="number" class="setting-input short" id="preset-pomodoro" min="1" max="120" value="25">
+                            <span>min</span>
+                        </div>
+                        <div class="preset-input-row">
+                            <label>Short Break:</label>
+                            <input type="number" class="setting-input short" id="preset-short-break" min="1" max="60" value="5">
+                            <span>min</span>
+                        </div>
+                        <div class="preset-input-row">
+                            <label>Long Break:</label>
+                            <input type="number" class="setting-input short" id="preset-long-break" min="1" max="60" value="15">
+                            <span>min</span>
+                        </div>
+                        <div class="preset-input-row">
+                            <label>Focus Session:</label>
+                            <input type="number" class="setting-input short" id="preset-focus" min="1" max="120" value="45">
+                            <span>min</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="timer-sound-enabled">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-content">
+                            <span class="setting-name">Timer Sounds</span>
+                            <span class="setting-description">Play sound when timer completes</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="timer-auto-start">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-content">
+                            <span class="setting-name">Auto-start Next Timer</span>
+                            <span class="setting-description">Automatically start break timer after work sessions</span>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+            <!-- Audio Section -->
+            <section class="settings-section" id="audio-section">
+                <h2>Audio Settings</h2>
+                
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Master Volume</span>
+                        <span class="setting-description">Overall volume for all audio</span>
+                    </label>
+                    <div class="volume-control">
+                        <input type="range" class="setting-slider" id="master-volume" min="0" max="100" value="70">
+                        <span class="volume-value">70%</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Ambient Sounds Volume</span>
+                        <span class="setting-description">Volume for background ambient sounds</span>
+                    </label>
+                    <div class="volume-control">
+                        <input type="range" class="setting-slider" id="ambient-volume" min="0" max="100" value="50">
+                        <span class="volume-value">50%</span>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Music Volume</span>
+                        <span class="setting-description">Volume for music playback</span>
+                    </label>
+                    <div class="volume-control">
+                        <input type="range" class="setting-slider" id="music-volume" min="0" max="100" value="80">
+                        <span class="volume-value">80%</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Appearance Section -->
+            <section class="settings-section" id="appearance-section">
+                <h2>Appearance Settings</h2>
+                
+                <div class="setting-group">
+                    <label class="setting-label">
+                        <span class="setting-name">Theme</span>
+                        <span class="setting-description">Choose your preferred theme</span>
+                    </label>
+                    <select class="setting-input" id="theme-select">
+                        <option value="auto">Auto (System)</option>
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="always-on-top">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-content">
+                            <span class="setting-name">Always on Top</span>
+                            <span class="setting-description">Keep ucanduit windows above other applications</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-checkbox">
+                        <input type="checkbox" id="minimize-to-tray">
+                        <span class="checkmark"></span>
+                        <div class="checkbox-content">
+                            <span class="setting-name">Minimize to System Tray</span>
+                            <span class="setting-description">Hide to system tray instead of taskbar when minimized</span>
+                        </div>
+                    </label>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Settings Footer -->
+        <footer class="settings-footer">
+            <div class="footer-actions">
+                <button class="btn btn-secondary" id="reset-btn">
+                    <i class="iconoir-restart"></i>
+                    Reset to Defaults
+                </button>
+                <button class="btn btn-secondary" id="export-btn">
+                    <i class="iconoir-download"></i>
+                    Export Settings
+                </button>
+                <button class="btn btn-secondary" id="import-btn">
+                    <i class="iconoir-upload"></i>
+                    Import Settings
+                </button>
+            </div>
+            <div class="footer-status">
+                <span id="save-status" class="save-status">Settings saved automatically</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="tools/settings.js"></script>
+    <script type="module" src="tools/settings-ui.js"></script>
+</body>
+</html>
