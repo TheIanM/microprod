@@ -59,7 +59,7 @@
         </div>
     </div>
 
-    <script src="./libs/skycons.js"></script>
+    <script src="../public/libs/skycons.js"></script>
     <script type="module">
         import { createAnimatedBackground, getSmallWindowCircles } from './animated-background.js';
 
@@ -114,44 +114,74 @@
             }
             
             async loadWeatherData() {
+                console.log('🔍 Starting loadWeatherData...');
                 try {
                     // Load weather data from storage (same as main weather tool)
                     let weatherData = null;
                     let currentLocation = null;
                     
+                    console.log('🔍 Checking Tauri availability:', !!window.__TAURI__, !!window.__TAURI__?.core);
+                    
                     if (window.__TAURI__ && window.__TAURI__.core) {
                         try {
+                            console.log('🔍 Attempting to read external file: ucanduit-weather.json');
                             const fileData = await window.__TAURI__.core.invoke('read_json_file', {
                                 filename: 'ucanduit-weather.json'
                             });
+                            console.log('🔍 External file data:', fileData);
                             if (fileData) {
                                 weatherData = fileData.weatherData;
                                 currentLocation = fileData.currentLocation;
-                                console.log('✅ Weather data loaded from external file');
+                                console.log('✅ Weather data loaded from external file:', { weatherData, currentLocation });
+                            } else {
+                                console.log('⚠️ External file returned null/undefined');
                             }
                         } catch (error) {
-                            console.log('📁 No external weather file found');
+                            console.log('📁 No external weather file found:', error);
                         }
+                    } else {
+                        console.log('🔍 Tauri not available, skipping external file');
                     }
                     
                     // Fallback to localStorage
                     if (!weatherData) {
-                        const savedWeather = localStorage.getItem('ucanduit_weathertool_weatherData');
-                        const savedLocation = localStorage.getItem('ucanduit_weathertool_currentLocation');
+                        console.log('🔍 Falling back to localStorage...');
+                        const savedWeather = localStorage.getItem('ucanduit_weather_weatherData');
+                        const savedLocation = localStorage.getItem('ucanduit_weather_currentLocation');
+                        
+                        console.log('🔍 localStorage keys found:', {
+                            weatherKey: 'ucanduit_weather_weatherData',
+                            weatherExists: !!savedWeather,
+                            weatherLength: savedWeather?.length,
+                            locationKey: 'ucanduit_weather_currentLocation', 
+                            locationExists: !!savedLocation,
+                            locationLength: savedLocation?.length
+                        });
                         
                         if (savedWeather) {
                             weatherData = JSON.parse(savedWeather);
+                            console.log('🔍 Parsed weather data:', weatherData);
                         }
                         if (savedLocation) {
                             currentLocation = JSON.parse(savedLocation);
+                            console.log('🔍 Parsed location data:', currentLocation);
                         }
                         console.log('✅ Weather data loaded from localStorage');
                     }
                     
+                    console.log('🔍 Final data check:', { 
+                        hasWeatherData: !!weatherData, 
+                        hasCurrentLocation: !!currentLocation,
+                        weatherDataKeys: weatherData ? Object.keys(weatherData) : [],
+                        currentLocationValue: currentLocation
+                    });
+                    
                     if (weatherData && currentLocation) {
                         this.weatherData = weatherData;
                         this.location = currentLocation;
+                        console.log('✅ Weather data successfully assigned to class properties');
                     } else {
+                        console.error('❌ Missing data:', { weatherData: !!weatherData, currentLocation: !!currentLocation });
                         throw new Error('No weather data available');
                     }
                     
@@ -162,7 +192,18 @@
             }
             
             render() {
-                if (!this.weatherData) return;
+                console.log('🎨 Starting render method...');
+                console.log('🔍 Render data check:', {
+                    hasWeatherData: !!this.weatherData,
+                    hasLocation: !!this.location,
+                    weatherData: this.weatherData,
+                    location: this.location
+                });
+                
+                if (!this.weatherData) {
+                    console.error('❌ No weather data available for rendering');
+                    return;
+                }
                 
                 const weather = this.weatherData;
                 

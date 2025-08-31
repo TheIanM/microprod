@@ -216,15 +216,22 @@ export class WeatherService {
         const locationMatch = feedTitle ? feedTitle.match(/(.+?) - Weather/) : null;
         const location = locationMatch ? locationMatch[1] : 'Unknown Location';
         
-        // Find the "Current Conditions" entry specifically
+        // Find the "Current Conditions" entry and today's forecast entry
         const entries = doc.querySelectorAll('entry');
         let currentConditionsEntry = null;
+        let todaysForecastEntry = null;
         
         for (const entry of entries) {
             const category = entry.querySelector('category');
+            const title = entry.querySelector('title')?.textContent || '';
+            
             if (category && category.getAttribute('term') === 'Current Conditions') {
                 currentConditionsEntry = entry;
-                break;
+            } else if (category && category.getAttribute('term') === 'Weather Forecasts') {
+                // Look for today's forecast (not tonight)
+                if (!title.toLowerCase().includes('night') && !todaysForecastEntry) {
+                    todaysForecastEntry = entry;
+                }
             }
         }
         
@@ -243,6 +250,15 @@ export class WeatherService {
         // Parse the detailed CDATA summary which contains all weather data
         const weatherData = this.parseCurrentConditionsSummary(entrySummary);
         
+        // Extract UV index from today's forecast if available
+        let uvIndex = null;
+        if (todaysForecastEntry) {
+            const forecastSummary = todaysForecastEntry.querySelector('summary')?.textContent || '';
+            console.log('📋 Today\'s forecast summary:', forecastSummary);
+            const uvMatch = forecastSummary.match(/UV index (\d+)/i);
+            uvIndex = uvMatch ? parseInt(uvMatch[1]) : null;
+        }
+        
         // Extract temperature and condition from title as backup
         const tempMatch = entryTitle.match(/(-?\d+\.?\d*)°C/);
         const titleTemp = tempMatch ? parseFloat(tempMatch[1]) : null;
@@ -256,7 +272,7 @@ export class WeatherService {
             feelsLike: weatherData.humidex || weatherData.temperature || titleTemp,
             condition: this.normalizeCondition(titleCondition || weatherData.condition),
             humidity: weatherData.humidity,
-            uvIndex: null, // UV is in forecast entries, not current conditions
+            uvIndex: uvIndex, // Extracted from today's forecast
             airQuality: weatherData.airQuality,
             windSpeed: weatherData.windSpeed,
             windDirection: weatherData.windDirection,
