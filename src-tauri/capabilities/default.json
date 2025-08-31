@@ -24,7 +24,17 @@
     "fs:allow-write-file",
     "fs:allow-create",
     "fs:allow-mkdir",
-    "http:default"
+    {
+      "identifier": "http:default",
+      "allow": [
+        { "url": "https://weather.gc.ca/*" },
+        { "url": "https://dd.weather.gc.ca/*" }
+      ]
+    },
+    "http:allow-fetch",
+    "http:allow-fetch-cancel",
+    "http:allow-fetch-read-body",
+    "http:allow-fetch-send"
   ],
   "scopes": [
     {
@@ -32,13 +42,6 @@
         "$APPDATA/ucanduit/**",
         "$HOME/.ucanduit/**",
         "$CWD/public/audio/**"
-      ]
-    },
-    {
-      "identifier": "http:default",
-      "allow": [
-        { "url": "https://weather.gc.ca/*" },
-        { "url": "https://dd.weather.gc.ca/*" }
       ]
     }
   ]

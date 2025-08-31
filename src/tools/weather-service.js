@@ -4,8 +4,8 @@
  * Base URL: https://dd.weather.gc.ca/
  */
 
-// Import Tauri's HTTP client from node_modules
-import { fetch } from '@tauri-apps/plugin-http';
+// Import Tauri's HTTP client from plugin
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 
 export class WeatherService {
     constructor() {
@@ -74,11 +74,11 @@ export class WeatherService {
         console.log('🌤️ Fetching live weather data for Toronto from Environment Canada...');
         
         // Try Environment Canada weather endpoints for Toronto
-        // Using RSS feeds which are more reliable than direct XML
+        // Using coordinate-based Atom feeds for detailed weather data
         const endpoints = [
-            `https://weather.gc.ca/rss/city/on-143_e.xml`, // Toronto RSS feed
-            `https://weather.gc.ca/rss/city/on-118_e.xml`, // Ottawa RSS (fallback)
-            `https://weather.gc.ca/rss/city/bc-74_e.xml`   // Vancouver RSS (fallback)
+            `https://weather.gc.ca/rss/weather/43.655_-79.383_e.xml`, // Toronto coordinates Atom feed
+            `https://weather.gc.ca/rss/city/on-143_e.xml`,            // Ottawa city feed (fallback)
+            `https://weather.gc.ca/rss/city/on-118_e.xml`             // Ottawa RSS (fallback)
         ];
         
         let lastError = null;
@@ -92,6 +92,7 @@ export class WeatherService {
                 }
                 
                 const xmlText = await response.text();
+                console.log('📄 Raw XML response (first 500 chars):', xmlText.substring(0, 500));
                 const weatherData = this.parseEnvironmentCanadaXML(xmlText);
                 
                 if (weatherData) {
@@ -119,45 +120,44 @@ export class WeatherService {
      */
     async fetchWithTimeout(url, timeout = 10000) {
         try {
-            // Use Tauri HTTP client
-            console.log(`🌐 Using Tauri HTTP plugin for: ${url}`);
-            
-            const response = await fetch(url, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/xml, text/xml, */*',
-                    'User-Agent': 'ucanduit-weather/1.0'
-                }
-            });
-            
-            return response; // Should be Web API compatible
-            
-        } catch (error) {
-            // Fallback to browser fetch if Tauri fails
-            console.warn('⚠️ Tauri HTTP failed, falling back to browser fetch:', error.message);
-            
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), timeout);
-            
-            try {
-                const response = await window.fetch(url, {
-                    signal: controller.signal,
-                    mode: 'cors',
+            // Check if we're in a Tauri context
+            if (typeof window !== 'undefined' && window.__TAURI_INTERNALS__) {
+                console.log(`🌐 Using Tauri HTTP plugin for: ${url}`);
+                console.log('🔍 Tauri fetch function available:', typeof tauriFetch);
+                console.log('🔍 Request details:', {
+                    url: url,
+                    method: 'GET',
                     headers: {
-                        'Accept': 'application/xml, text/xml, */*'
+                        'Accept': 'application/xml, text/xml, */*',
+                        'User-Agent': 'ucanduit-weather/1.0'
                     }
                 });
                 
-                clearTimeout(timeoutId);
-                return response;
+                const response = await tauriFetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/xml, text/xml, */*',
+                        'User-Agent': 'ucanduit-weather/1.0'
+                    }
+                });
                 
-            } catch (fallbackError) {
-                clearTimeout(timeoutId);
-                if (fallbackError.name === 'AbortError') {
-                    throw new Error('Request timeout');
-                }
-                throw fallbackError;
+                console.log('✅ Tauri fetch successful:', response);
+                return response; // Should be Web API compatible
+            } else {
+                throw new Error('Not in Tauri context, falling back to browser fetch');
             }
+            
+        } catch (error) {
+            // Log detailed error information
+            console.error('❌ Tauri HTTP error details:', {
+                message: error.message,
+                name: error.name,
+                stack: error.stack,
+                error: error
+            });
+            
+            // No browser fallback for security - Tauri HTTP is required
+            throw new Error(`Tauri HTTP request failed: ${error.message || 'Unknown error'}`);
         }
     }
     
@@ -177,7 +177,13 @@ export class WeatherService {
                 throw new Error('XML parsing failed');
             }
             
-            // Look for RSS feed structure first
+            // Look for Atom feed structure first (Environment Canada uses Atom)
+            const feed = doc.querySelector('feed');
+            if (feed) {
+                return this.parseAtomWeatherFeed(doc);
+            }
+            
+            // Look for RSS feed structure
             const channel = doc.querySelector('channel');
             if (channel) {
                 return this.parseRSSWeatherFeed(doc);
@@ -189,12 +195,146 @@ export class WeatherService {
                 return this.parseDirectWeatherXML(doc);
             }
             
-            throw new Error('Unknown XML format - neither RSS nor direct weather XML');
+            throw new Error('Unknown XML format - not Atom, RSS, or direct weather XML');
             
         } catch (error) {
             console.error('❌ XML parsing error:', error);
             throw new Error(`Failed to parse weather data: ${error.message}`);
         }
+    }
+    
+    /**
+     * Parse Atom weather feed format (Environment Canada's preferred format)
+     * @param {Document} doc - Parsed XML document
+     * @returns {Object} Weather data object
+     */
+    parseAtomWeatherFeed(doc) {
+        console.log('🔍 Parsing Environment Canada Atom feed format...');
+        
+        // Get feed title for location
+        const feedTitle = this.getXMLValue(doc, 'title');
+        const locationMatch = feedTitle ? feedTitle.match(/(.+?) - Weather/) : null;
+        const location = locationMatch ? locationMatch[1] : 'Unknown Location';
+        
+        // Find the "Current Conditions" entry specifically
+        const entries = doc.querySelectorAll('entry');
+        let currentConditionsEntry = null;
+        
+        for (const entry of entries) {
+            const category = entry.querySelector('category');
+            if (category && category.getAttribute('term') === 'Current Conditions') {
+                currentConditionsEntry = entry;
+                break;
+            }
+        }
+        
+        if (!currentConditionsEntry) {
+            throw new Error('No "Current Conditions" entry found in Atom feed');
+        }
+        
+        const entryTitle = currentConditionsEntry.querySelector('title')?.textContent || '';
+        const entrySummary = currentConditionsEntry.querySelector('summary')?.textContent || '';
+        
+        console.log('📋 Current Conditions Entry:', { 
+            title: entryTitle, 
+            summaryLength: entrySummary.length 
+        });
+        
+        // Parse the detailed CDATA summary which contains all weather data
+        const weatherData = this.parseCurrentConditionsSummary(entrySummary);
+        
+        // Extract temperature and condition from title as backup
+        const tempMatch = entryTitle.match(/(-?\d+\.?\d*)°C/);
+        const titleTemp = tempMatch ? parseFloat(tempMatch[1]) : null;
+        
+        const conditionMatch = entryTitle.match(/Current Conditions: (.+?),/);
+        const titleCondition = conditionMatch ? conditionMatch[1] : null;
+        
+        return {
+            location: location,
+            temperature: weatherData.temperature || titleTemp,
+            feelsLike: weatherData.humidex || weatherData.temperature || titleTemp,
+            condition: this.normalizeCondition(titleCondition || weatherData.condition),
+            humidity: weatherData.humidity,
+            uvIndex: null, // UV is in forecast entries, not current conditions
+            airQuality: weatherData.airQuality,
+            windSpeed: weatherData.windSpeed,
+            windDirection: weatherData.windDirection,
+            pressure: weatherData.pressure,
+            visibility: weatherData.visibility,
+            dewpoint: weatherData.dewpoint,
+            timestamp: new Date().toISOString(),
+            source: 'Environment Canada Current Conditions',
+            locationId: 'coordinates-based',
+            rawTitle: entryTitle,
+            rawSummary: entrySummary.substring(0, 300),
+            observedAt: weatherData.observedAt
+        };
+    }
+    
+    /**
+     * Parse the detailed current conditions HTML summary
+     * @param {string} summaryHtml - HTML content from CDATA section
+     * @returns {Object} Extracted weather data
+     */
+    parseCurrentConditionsSummary(summaryHtml) {
+        const data = {};
+        
+        // Extract observed location and time
+        const observedMatch = summaryHtml.match(/<b>Observed at:<\/b>\s*(.+?)<br\/>/);
+        data.observedAt = observedMatch ? observedMatch[1].trim() : null;
+        
+        // Extract condition
+        const conditionMatch = summaryHtml.match(/<b>Condition:<\/b>\s*(.+?)<br\/>/);
+        data.condition = conditionMatch ? conditionMatch[1].trim() : null;
+        
+        // Extract temperature
+        const tempMatch = summaryHtml.match(/<b>Temperature:<\/b>\s*(-?\d+\.?\d*)&deg;C/);
+        data.temperature = tempMatch ? parseFloat(tempMatch[1]) : null;
+        
+        // Extract pressure
+        const pressureMatch = summaryHtml.match(/<b>Pressure \/ Tendency:<\/b>\s*([\d.]+)\s*kPa/);
+        data.pressure = pressureMatch ? parseFloat(pressureMatch[1]) : null;
+        
+        // Extract visibility
+        const visibilityMatch = summaryHtml.match(/<b>Visibility:<\/b>\s*([\d.]+)\s*km/);
+        data.visibility = visibilityMatch ? parseFloat(visibilityMatch[1]) : null;
+        
+        // Extract humidity
+        const humidityMatch = summaryHtml.match(/<b>Humidity:<\/b>\s*(\d+)\s*%/);
+        data.humidity = humidityMatch ? parseInt(humidityMatch[1]) : null;
+        
+        // Extract humidex (feels like)
+        const humidexMatch = summaryHtml.match(/<b>Humidex:<\/b>\s*(\d+)/);
+        data.humidex = humidexMatch ? parseInt(humidexMatch[1]) : null;
+        
+        // Extract dewpoint
+        const dewpointMatch = summaryHtml.match(/<b>Dewpoint:<\/b>\s*(-?\d+\.?\d*)&deg;C/);
+        data.dewpoint = dewpointMatch ? parseFloat(dewpointMatch[1]) : null;
+        
+        // Extract wind
+        const windMatch = summaryHtml.match(/<b>Wind:<\/b>\s*([A-Z]+)\s*(\d+)\s*km\/h/);
+        if (windMatch) {
+            data.windDirection = windMatch[1];
+            data.windSpeed = parseInt(windMatch[2]);
+        }
+        
+        // Extract air quality and convert AQHI number to description
+        const aqiMatch = summaryHtml.match(/<b>Air Quality Health Index:<\/b>\s*(\d+)/);
+        if (aqiMatch) {
+            const aqhi = parseInt(aqiMatch[1]);
+            // Convert AQHI numeric scale to text description
+            if (aqhi >= 1 && aqhi <= 3) data.airQuality = 'Good';
+            else if (aqhi >= 4 && aqhi <= 6) data.airQuality = 'Moderate';
+            else if (aqhi >= 7 && aqhi <= 10) data.airQuality = 'High';
+            else if (aqhi >= 11) data.airQuality = 'Very High';
+            else data.airQuality = 'Good'; // fallback for 0 or invalid
+        } else {
+            data.airQuality = null;
+        }
+        
+        console.log('🔬 Parsed weather data:', data);
+        return data;
     }
     
     /**

@@ -410,7 +410,7 @@ export class WeatherTool extends ToolBase {
         try {
             this.updateStatus('Fetching Toronto weather...', 'primary', 2000);
             
-            // For Phase 1, we're fixed to Toronto regardless of input
+            // currently fixed for testing. 
             this.currentLocation = 'Toronto, ON';
             
             // Fetch real weather data
@@ -489,7 +489,7 @@ export class WeatherTool extends ToolBase {
         try {
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
-                const url = './weather-details.html';
+                const url = './src/weather-details.html';
                 window.open(url, '_blank', 'width=700,height=600');
                 this.updateStatus('Opened weather details (browser mode)', 'primary', 2000);
                 return;
@@ -503,7 +503,7 @@ export class WeatherTool extends ToolBase {
                 const windowTitle = `${this.currentLocation || 'Weather'} Details - ucanduit`;
                     
                 const weatherWindow = new webviewWindow.WebviewWindow(windowLabel, {
-                    url: 'weather-details.html',
+                    url: '../src/weather-details.html',
                     title: windowTitle,
                     width: 700,
                     height: 600,
@@ -533,7 +533,7 @@ export class WeatherTool extends ToolBase {
             this.updateStatus('Error: ' + error.message, 'danger', 3000);
             
             // Fallback: open in browser tab
-            const fallbackUrl = './weather-details.html';
+            const fallbackUrl = './src/weather-details.html';
             window.open(fallbackUrl, '_blank', 'width=700,height=600');
         }
     }
@@ -545,7 +545,7 @@ export class WeatherTool extends ToolBase {
     }
     
     getAirQualityClass(airQuality) {
-        if (!airQuality) return '';
+        if (!airQuality || typeof airQuality !== 'string') return '';
         const quality = airQuality.toLowerCase();
         if (quality.includes('good')) return 'air-good';
         if (quality.includes('moderate')) return 'air-moderate';
