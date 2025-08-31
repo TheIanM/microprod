@@ -124,10 +124,13 @@ export class TodoListTool extends ToolBase {
         const breadcrumb = this.find('.todo-breadcrumb');
         
         if (this.currentView === 'lists') {
-            breadcrumb.innerHTML = '<i class="iconoir-task-list"></i> Todo Lists';
+            // Hide breadcrumb in lists view - title is redundant with collapsible section
+            breadcrumb.style.display = 'none';
             content.innerHTML = this.renderLists();
             this.bindContentEvents();
         } else if (this.currentView === 'items') {
+            // Show breadcrumb in items view for navigation
+            breadcrumb.style.display = 'flex';
             const activeList = this.lists[this.activeListId];
             breadcrumb.innerHTML = `
                 <button class="tool-btn back-button">← Back</button>
