@@ -489,11 +489,55 @@ export class TimerTool extends ToolBase {
     }
     
     async openTimerWindow() {
-        // TODO: Implement dedicated timer window with presets, stats, etc.
-        console.log('🪟 Opening timer options window...');
-        
-        if (window.updateStatus) {
-            window.updateStatus('Timer window coming soon!', 'accent', 2000);
+        try {
+            if (!window.__TAURI__) {
+                // Browser fallback - open in new tab
+                const url = '../src/timer-window.html';
+                window.open(url, '_blank', 'width=500,height=700');
+                this.updateStatus('Opened timer window (browser mode)', 'primary', 2000);
+                return;
+            }
+
+            // Use the same pattern as working memo/weather windows
+            if (window.__TAURI__.webview && window.__TAURI__.webviewWindow) {
+                const { webviewWindow } = window.__TAURI__;
+                
+                const windowLabel = `timer-window-${Date.now()}`;
+                const windowTitle = `Timer - ucanduit`;
+                    
+                const timerWindow = new webviewWindow.WebviewWindow(windowLabel, {
+                    url: '../src/timer-window.html',
+                    title: windowTitle,
+                    width: 500,
+                    height: 700,
+                    alwaysOnTop: false,
+                    decorations: true,
+                    transparent: false,
+                    titleBarStyle: 'overlay'
+                });
+
+                // Handle window events
+                timerWindow.once('tauri://created', () => {
+                    console.log('Timer window created successfully');
+                    this.updateStatus('Timer window opened', 'success', 2000);
+                });
+
+                timerWindow.once('tauri://error', (error) => {
+                    console.error('Timer window creation error:', error);
+                    this.updateStatus('Failed to open timer window', 'danger', 3000);
+                });
+                
+            } else {
+                throw new Error('webviewWindow API not available');
+            }
+
+        } catch (error) {
+            console.error('Error opening timer window:', error);
+            this.updateStatus('Error: ' + error.message, 'danger', 3000);
+            
+            // Fallback: open in browser tab
+            const fallbackUrl = './src/timer-window.html';
+            window.open(fallbackUrl, '_blank', 'width=500,height=700');
         }
     }
     

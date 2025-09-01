@@ -1,0 +1,239 @@
+ <style>
+        .timer-window-container {
+            padding: 20px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .timer-window-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .timer-window-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .timer-display-section {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            border: 1px solid var(--text-primary);
+        }
+
+        .timer-main-display {
+            font-size: 48px;
+            font-weight: 700;
+            font-family: 'Quicksand', monospace;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+
+        .timer-status {
+            font-size: 14px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .timer-controls-section {
+            margin-bottom: 30px;
+        }
+
+        .timer-control-row {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .timer-control-row .tool-btn {
+            padding: 12px 24px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .timer-duration-section {
+            margin-bottom: 30px;
+        }
+
+        .timer-duration-section h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .duration-slider-container {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .duration-display {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+
+        .timer-presets h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .preset-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid var(--text-primary);
+            border-radius: 12px;
+            padding: 15px 10px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 12px;
+            text-align: center;
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            min-height: 70px;
+        }
+
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .preset-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .preset-btn i {
+            font-size: 16px;
+            margin-bottom: 2px;
+        }
+
+        .preset-btn span {
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .timer-stats-section {
+            margin-bottom: 20px;
+        }
+
+        .timer-stats-section h3 {
+            font-size: 16px;
+            margin-bottom: 15px;
+            color: var(--text-primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .stat-item {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 15px 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        .recent-sessions h4 {
+            font-size: 14px;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+        }
+
+        .sessions-list {
+            max-height: 120px;
+            overflow-y: auto;
+        }
+
+        .session-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .session-time {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .session-duration {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--success);
+        }
+
+        .no-sessions {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 12px;
+            padding: 20px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 500px) {
+            .timer-window-container {
+                padding: 15px;
+            }
+            
+            .preset-buttons {
+                grid-template-columns: repeat(4, 1fr);
+            }
+            
+            .preset-btn {
+                padding: 10px 5px;
+                min-height: 60px;
+            }
+        }
+    </style>
