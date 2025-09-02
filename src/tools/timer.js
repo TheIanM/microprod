@@ -102,52 +102,124 @@ export class TimerTool extends ToolBase {
         
         this.container.innerHTML = `
             <div style="text-align: center;">
-                <!-- Timer Duration Display -->
-                <div style="margin-bottom: 12px;">
-                    <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); font-family: 'Quicksand', monospace;" id="timer-time-${this.id}">
-                        ${this.formatTime(this.remainingSeconds)}
+                <!-- Basic Timer View -->
+                <div id="timer-basic-view-${this.id}" class="timer-view">
+                    <!-- Timer Duration Display -->
+                    <div style="margin-bottom: 12px;">
+                        <div style="font-size: 18px; font-weight: 700; color: var(--text-primary); font-family: 'Quicksand', monospace;" id="timer-time-${this.id}">
+                            ${this.formatTime(this.remainingSeconds)}
+                        </div>
                     </div>
-                </div>
-                
-                <!-- Duration Slider -->
-                <div style="margin-bottom: 12px;">
-                    <input type="range" class="slider" id="timer-slider-${this.id}" 
-                           min="5" max="120" value="25" step="5">
-                    <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
-                        <span id="slider-label-${this.id}">25 minutes</span>
+                    
+                    <!-- Duration Slider -->
+                    <div style="margin-bottom: 12px;">
+                        <input type="range" class="slider" id="timer-slider-${this.id}" 
+                               min="5" max="120" value="25" step="5">
+                        <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
+                            <span id="slider-label-${this.id}">25 minutes</span>
+                        </div>
                     </div>
+                    
+                    <!-- Timer Controls -->
+                    <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
+                        <button id="timer-start-${this.id}" style="font-size: 12px; padding: 6px 10px;">
+                            ▶ Start
+                        </button>
+                        <button id="timer-pause-${this.id}" style="font-size: 12px; padding: 6px 10px;">
+                            ⏸ Pause
+                        </button>
+                        <button id="timer-reset-${this.id}" style="font-size: 12px; padding: 6px 10px;">
+                            ⏹ Reset
+                        </button>
+                    </div>
+                    
+                    <!-- Expand Options Button -->
+                    <button id="timer-expand-${this.id}" style="font-size: 11px; padding: 4px 8px;">
+                        <i class="iconoir-settings"></i> More Options
+                    </button>
                 </div>
-                
-                <!-- Timer Controls -->
-                <div style="display: flex; gap: 8px; align-items: center; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
-                    <button id="timer-start-${this.id}" style="font-size: 12px; padding: 6px 10px;">
-                        ▶ Start
-                    </button>
-                    <button id="timer-pause-${this.id}" style="font-size: 12px; padding: 6px 10px;">
-                        ⏸ Pause
-                    </button>
-                    <button id="timer-reset-${this.id}" style="font-size: 12px; padding: 6px 10px;">
-                        ⏹ Reset
+
+                <!-- Expanded Timer View (hidden initially) -->
+                <div id="timer-expanded-view-${this.id}" class="timer-view" style="display: none;">
+                    <!-- Quick Presets -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Quick Presets</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                            <button class="timer-preset-btn" data-minutes="5" style="font-size: 11px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center;">
+                                <i class="iconoir-flash" style="margin-bottom: 2px;"></i>
+                                <span style="font-weight: 600;">5 min</span>
+                                <span style="font-size: 9px; color: var(--text-secondary);">Quick</span>
+                            </button>
+                            <button class="timer-preset-btn" data-minutes="15" style="font-size: 11px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center;">
+                                <i class="iconoir-coffee-cup" style="margin-bottom: 2px;"></i>
+                                <span style="font-weight: 600;">15 min</span>
+                                <span style="font-size: 9px; color: var(--text-secondary);">Break</span>
+                            </button>
+                            <button class="timer-preset-btn active" data-minutes="25" style="font-size: 11px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center;">
+                                <i class="iconoir-timer" style="margin-bottom: 2px;"></i>
+                                <span style="font-weight: 600;">25 min</span>
+                                <span style="font-size: 9px; color: var(--text-secondary);">Pomodoro</span>
+                            </button>
+                            <button class="timer-preset-btn" data-minutes="45" style="font-size: 11px; padding: 8px 6px; display: flex; flex-direction: column; align-items: center;">
+                                <i class="iconoir-brain" style="margin-bottom: 2px;"></i>
+                                <span style="font-weight: 600;">45 min</span>
+                                <span style="font-size: 9px; color: var(--text-secondary);">Focus</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Today's Stats -->
+                    <div style="margin-bottom: 15px;">
+                        <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px;">Today's Sessions</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                            <div style="text-align: center; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 4px;">
+                                <div style="font-size: 16px; font-weight: 700; color: var(--success);" id="timer-sessions-today-${this.id}">${todaysSession}</div>
+                                <div style="font-size: 9px; color: var(--text-secondary);">Completed</div>
+                            </div>
+                            <div style="text-align: center; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 4px;">
+                                <div style="font-size: 16px; font-weight: 700; color: var(--primary);" id="timer-minutes-today-${this.id}">0</div>
+                                <div style="font-size: 9px; color: var(--text-secondary);">Minutes</div>
+                            </div>
+                            <div style="text-align: center; background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px 4px;">
+                                <div style="font-size: 16px; font-weight: 700; color: var(--accent);" id="timer-avg-session-${this.id}">0</div>
+                                <div style="font-size: 9px; color: var(--text-secondary);">Avg Length</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Back Button -->
+                    <button id="timer-back-${this.id}" style="font-size: 11px; padding: 4px 8px;">
+                        <i class="iconoir-arrow-left"></i> Back
                     </button>
                 </div>
-                
-                <!-- Timer Options Button -->
-                <button id="timer-window-${this.id}" style="font-size: 11px; padding: 4px 8px;">
-                    <i class="iconoir-settings"></i> Timer Options
-                </button>
             </div>
         `;
         
         // Cache DOM elements for performance
         this.elements = {
+            // Basic view elements
+            basicView: this.find(`#timer-basic-view-${this.id}`),
             timeDisplay: this.find(`#timer-time-${this.id}`),
             startBtn: this.find(`#timer-start-${this.id}`),
             pauseBtn: this.find(`#timer-pause-${this.id}`),
             resetBtn: this.find(`#timer-reset-${this.id}`),
-            windowBtn: this.find(`#timer-window-${this.id}`),
+            expandBtn: this.find(`#timer-expand-${this.id}`),
             slider: this.find(`#timer-slider-${this.id}`),
-            sliderLabel: this.find(`#slider-label-${this.id}`)
+            sliderLabel: this.find(`#slider-label-${this.id}`),
+            
+            // Expanded view elements
+            expandedView: this.find(`#timer-expanded-view-${this.id}`),
+            backBtn: this.find(`#timer-back-${this.id}`),
+            sessionsToday: this.find(`#timer-sessions-today-${this.id}`),
+            minutesToday: this.find(`#timer-minutes-today-${this.id}`),
+            avgSession: this.find(`#timer-avg-session-${this.id}`),
+            
+            // Preset buttons (will be found after render)
+            presetBtns: []
         };
+        
+        // Find preset buttons
+        this.elements.presetBtns = this.container.querySelectorAll('.timer-preset-btn');
         
         this.updateDisplay();
         
@@ -170,8 +242,18 @@ export class TimerTool extends ToolBase {
             this.elements.sliderLabel.textContent = `${minutes} minute${minutes !== 1 ? 's' : ''}`;
         });
         
-        // Timer options button - open detailed window
-        this.elements.windowBtn.addEventListener('click', () => this.openTimerWindow());
+        // View toggle buttons
+        this.elements.expandBtn.addEventListener('click', () => this.showExpandedView());
+        this.elements.backBtn.addEventListener('click', () => this.showBasicView());
+        
+        // Preset buttons
+        this.elements.presetBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const minutes = parseInt(btn.dataset.minutes);
+                this.setDuration(minutes * 60);
+                this.updateActivePreset(minutes);
+            });
+        });
     }
     
     formatTime(seconds) {
@@ -276,15 +358,57 @@ export class TimerTool extends ToolBase {
         console.log('⏹️ Timer reset');
     }
     
+    showExpandedView() {
+        this.elements.basicView.style.display = 'none';
+        this.elements.expandedView.style.display = 'block';
+        this.updateStats();
+    }
+    
+    showBasicView() {
+        this.elements.basicView.style.display = 'block';
+        this.elements.expandedView.style.display = 'none';
+    }
+    
+    updateActivePreset(minutes) {
+        this.elements.presetBtns.forEach(btn => {
+            const isActive = parseInt(btn.dataset.minutes) === minutes;
+            btn.classList.toggle('active', isActive);
+        });
+    }
+    
+    updateStats() {
+        const today = new Date().toDateString();
+        const todaySessions = this.sessions.filter(session => {
+            const sessionDate = new Date(session.startTime).toDateString();
+            return sessionDate === today && session.completed;
+        });
+
+        // Update session count
+        this.elements.sessionsToday.textContent = todaySessions.length;
+        
+        // Calculate total minutes today
+        const totalMinutes = todaySessions.reduce((sum, session) => 
+            sum + Math.floor(session.duration / 60), 0);
+        this.elements.minutesToday.textContent = totalMinutes;
+        
+        // Calculate average session length
+        const avgSession = todaySessions.length > 0 ? 
+            Math.round(totalMinutes / todaySessions.length) : 0;
+        this.elements.avgSession.textContent = avgSession;
+    }
+    
     setDuration(seconds) {
         this.pause();
         this.totalSeconds = Math.max(60, Math.min(120 * 60, seconds)); // 1 minute to 2 hours
         this.remainingSeconds = this.totalSeconds;
         this.updateDisplay();
         
-        // Update custom input display
+        // Update slider display
         const minutes = Math.floor(this.totalSeconds / 60);
-        this.elements.customInput.value = minutes;
+        this.elements.slider.value = minutes;
+        
+        // Update active preset
+        this.updateActivePreset(minutes);
         
         console.log(`⏱️ Timer duration set to ${minutes} minutes`);
     }
@@ -306,8 +430,10 @@ export class TimerTool extends ToolBase {
             this.sessions.push(this.currentSession);
             this.saveToStorage();
             
-            // Update today's session count
-            this.elements.todaysSessionsDisplay.textContent = this.getTodaysSessionCount();
+            // Update stats if expanded view is showing
+            if (this.elements.expandedView.style.display !== 'none') {
+                this.updateStats();
+            }
         }
         
         this.updateDisplay();
@@ -490,11 +616,16 @@ export class TimerTool extends ToolBase {
     
     async openTimerWindow() {
         try {
+            // Setup message listeners for timer window communication
+            this.setupTimerWindowListeners();
+            
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
                 const url = '../src/timer-window.html';
-                window.open(url, '_blank', 'width=500,height=700');
-                this.updateStatus('Opened timer window (browser mode)', 'primary', 2000);
+                window.open(url, '_blank', 'width=400,height=600');
+                if (window.updateStatus) {
+                    window.updateStatus('Opened timer window (browser mode)', 'primary', 2000);
+                }
                 return;
             }
 
@@ -508,23 +639,28 @@ export class TimerTool extends ToolBase {
                 const timerWindow = new webviewWindow.WebviewWindow(windowLabel, {
                     url: '../src/timer-window.html',
                     title: windowTitle,
-                    width: 500,
-                    height: 700,
+                    width: 400,
+                    height: 600,
                     alwaysOnTop: false,
                     decorations: true,
                     transparent: false,
-                    titleBarStyle: 'overlay'
+                    titleBarStyle: 'overlay',
+                    center: true
                 });
 
                 // Handle window events
                 timerWindow.once('tauri://created', () => {
                     console.log('Timer window created successfully');
-                    this.updateStatus('Timer window opened', 'success', 2000);
+                    if (window.updateStatus) {
+                        window.updateStatus('Timer window opened', 'success', 2000);
+                    }
                 });
 
                 timerWindow.once('tauri://error', (error) => {
                     console.error('Timer window creation error:', error);
-                    this.updateStatus('Failed to open timer window', 'danger', 3000);
+                    if (window.updateStatus) {
+                        window.updateStatus('Failed to open timer window', 'danger', 3000);
+                    }
                 });
                 
             } else {
@@ -533,17 +669,95 @@ export class TimerTool extends ToolBase {
 
         } catch (error) {
             console.error('Error opening timer window:', error);
-            this.updateStatus('Error: ' + error.message, 'danger', 3000);
+            if (window.updateStatus) {
+                window.updateStatus('Error: ' + error.message, 'danger', 3000);
+            }
             
             // Fallback: open in browser tab
             const fallbackUrl = './src/timer-window.html';
-            window.open(fallbackUrl, '_blank', 'width=500,height=700');
+            window.open(fallbackUrl, '_blank', 'width=400,height=600');
+        }
+    }
+    
+    setupTimerWindowListeners() {
+        if (this.listenersSetup) return; // Avoid duplicate listeners
+        this.listenersSetup = true;
+        
+        // Setup Tauri event listener
+        if (window.__TAURI__ && window.__TAURI__.event) {
+            const { listen } = window.__TAURI__.event;
+            listen('timer-window-action', (event) => {
+                console.log('🔗 Received Tauri event:', event);
+                this.handleTimerWindowMessage(event.payload);
+            });
+            console.log('🔗 Tauri timer window listeners setup');
+        }
+        
+        // Setup browser fallback listener using localStorage polling
+        this.setupBrowserFallbackListener();
+        
+        console.log('🔗 Timer window listeners setup complete');
+    }
+    
+    setupBrowserFallbackListener() {
+        // Poll localStorage for messages from timer window
+        this.messageCheckInterval = setInterval(() => {
+            try {
+                const messageData = localStorage.getItem('timer-window-message');
+                if (messageData) {
+                    const message = JSON.parse(messageData);
+                    
+                    // Only process if it's a new message (timestamp check)
+                    if (!this.lastProcessedTimestamp || message.timestamp > this.lastProcessedTimestamp) {
+                        this.lastProcessedTimestamp = message.timestamp;
+                        console.log('🔗 Received browser fallback message:', message);
+                        this.handleTimerWindowMessage(message);
+                        
+                        // Clear the message after processing
+                        localStorage.removeItem('timer-window-message');
+                    }
+                }
+            } catch (error) {
+                console.error('Error processing timer window message:', error);
+            }
+        }, 100); // Check every 100ms
+        
+        console.log('🔗 Browser fallback listener setup with localStorage polling');
+    }
+    
+    handleTimerWindowMessage(message) {
+        const { action, data } = message;
+        console.log(`📨 Received timer window action: ${action}`, data);
+        
+        switch (action) {
+            case 'timer-start':
+                this.start();
+                break;
+            case 'timer-pause':
+                this.pause();
+                break;
+            case 'timer-reset':
+                this.reset();
+                break;
+            case 'timer-set-duration':
+                if (data && data.seconds) {
+                    this.setDuration(data.seconds);
+                }
+                break;
+            default:
+                console.warn(`Unknown timer window action: ${action}`);
         }
     }
     
     // Cleanup when tool is destroyed
     destroy() {
         this.pause();
+        
+        // Clean up message polling interval
+        if (this.messageCheckInterval) {
+            clearInterval(this.messageCheckInterval);
+            this.messageCheckInterval = null;
+        }
         
         // Hide timer ring
         const timerRing = document.getElementById('timer-ring');

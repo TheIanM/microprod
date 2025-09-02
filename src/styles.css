@@ -623,3 +623,25 @@ button:hover {
     .section-title { font-size: 11px; }
     .section-toggle { font-size: 12px; }
 }
+
+/* Timer preset button styles */
+.timer-preset-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid var(--text-primary);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--text-primary);
+    font-family: 'Quicksand', sans-serif;
+}
+
+.timer-preset-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+}
+
+.timer-preset-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}

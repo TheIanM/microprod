@@ -21,6 +21,7 @@
             <h1 class="timer-window-title" id="timer-window-title">
                 <i class="iconoir-timer"></i> Timer Options
             </h1>
+            <div class="timer-status" id="timer-status">Ready</div>
         </div>
 
         <div class="timer-window-content">
@@ -91,17 +92,6 @@
                     </div>
                 </div>
                 
-                <!-- Recent Sessions -->
-                <div class="recent-sessions" id="recent-sessions">
-                    <h4>Recent Sessions</h4>
-                    <div class="sessions-list" id="sessions-list">
-                        <div class="no-sessions">No sessions today</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
    
 
     <script type="module">
@@ -148,6 +138,8 @@
                 bindEvents();
                 updateDisplay();
                 updateStats();
+                
+                updateStatus('Timer window ready');
 
                 console.log('✅ Timer window initialization complete');
 
@@ -246,43 +238,48 @@
             timerData.totalSeconds = seconds;
             timerData.remainingSeconds = seconds;
             updateDisplay();
+            
+            // Send duration change to main window
+            sendMessageToMainWindow('timer-set-duration', { seconds });
         }
 
         function startTimer() {
-            if (timerData.isRunning) return;
-            
-            timerData.isRunning = true;
-            timerData.startTime = Date.now();
-            
-            timerData.intervalId = setInterval(() => {
-                timerData.remainingSeconds--;
-                updateDisplay();
-                
-                if (timerData.remainingSeconds <= 0) {
-                    completeTimer();
-                }
-            }, 1000);
-            
-            updateStatus('Timer running...');
+            // Send message to main window to start timer
+            sendMessageToMainWindow('timer-start');
+            updateStatus('Start command sent');
         }
 
         function pauseTimer() {
-            if (!timerData.isRunning) return;
-            
-            timerData.isRunning = false;
-            if (timerData.intervalId) {
-                clearInterval(timerData.intervalId);
-                timerData.intervalId = null;
-            }
-            
-            updateStatus('Timer paused');
+            // Send message to main window to pause timer
+            sendMessageToMainWindow('timer-pause');
+            updateStatus('Pause command sent');
         }
 
         function resetTimer() {
-            pauseTimer();
-            timerData.remainingSeconds = timerData.totalSeconds;
-            updateDisplay();
-            updateStatus('Timer reset');
+            // Send message to main window to reset timer
+            sendMessageToMainWindow('timer-reset');
+            updateStatus('Reset command sent');
+        }
+
+        async function sendMessageToMainWindow(action, data = null) {
+            try {
+                if (window.__TAURI__ && window.__TAURI__.event) {
+                    // Use Tauri events to communicate with main window
+                    const { emit } = window.__TAURI__.event;
+                    await emit('timer-window-action', { action, data });
+                    console.log(`Sent ${action} to main window`);
+                } else {
+                    // Browser fallback - use localStorage for communication
+                    const message = { action, data, timestamp: Date.now() };
+                    localStorage.setItem('timer-window-message', JSON.stringify(message));
+                    
+                    // Dispatch event for main window to listen
+                    window.dispatchEvent(new CustomEvent('timer-window-message', { detail: message }));
+                }
+            } catch (error) {
+                console.error('Error sending message to main window:', error);
+                updateStatus('Error: Could not communicate with main timer');
+            }
         }
 
         async function completeTimer() {
@@ -355,10 +352,7 @@
         }
 
         function updateDisplay() {
-            const display = document.getElementById('timer-main-display');
             const durationDisplay = document.getElementById('duration-display');
-            
-            display.textContent = formatTime(timerData.remainingSeconds);
             
             const minutes = Math.floor(timerData.totalSeconds / 60);
             durationDisplay.textContent = `${minutes} minute${minutes !== 1 ? 's' : ''}`;
