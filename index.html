@@ -195,14 +195,23 @@
             content.classList.toggle('collapsed');
             toggle.classList.toggle('collapsed');
             
-            // Load ES6 module when expanding (only if not already loaded)
-            if (wasCollapsed) {
-                // Expanding - load the tool module if not already loaded
+            // Update container reference when expanding (tool already loaded at startup)
+            if (wasCollapsed && window.loadedTools[sectionName]) {
+                // Expanding - update the tool's container reference
                 try {
-                    await loadTool(sectionName, content);
-                    console.log(`Loaded ${sectionName} tool module`);
+                    const toolInstance = window.loadedTools[sectionName];
+                    if (toolInstance.updateContainer) {
+                        toolInstance.updateContainer(content);
+                    } else {
+                        // Fallback: reinitialize the tool's UI in the new container
+                        toolInstance.container = content;
+                        if (toolInstance.render) {
+                            toolInstance.render();
+                        }
+                    }
+                    console.log(`Updated container for ${sectionName} tool module`);
                 } catch (error) {
-                    console.error(`Failed to load ${sectionName} tool:`, error);
+                    console.error(`Failed to update container for ${sectionName} tool:`, error);
                 }
             }
             // Note: Tools remain loaded when collapsed to maintain ticker functionality
@@ -641,6 +650,24 @@
             }
         }
         
+        // Load all modules on startup to eliminate selective loading
+        async function loadAllModules() {
+            const modules = ['timer', 'sounds', 'ambient', 'todos', 'memos', 'weather'];
+            const loadPromises = modules.map(async (moduleName) => {
+                try {
+                    // Create temporary container for initialization
+                    const tempContainer = document.createElement('div');
+                    await loadTool(moduleName, tempContainer);
+                    console.log(`Successfully preloaded ${moduleName} module`);
+                } catch (error) {
+                    console.error(`Failed to preload ${moduleName} module:`, error);
+                }
+            });
+            
+            await Promise.all(loadPromises);
+            console.log('All modules preloaded successfully');
+        }
+        
         // Initialize when page loads
         window.addEventListener('DOMContentLoaded', async () => {
             initializeDarkMode();
@@ -652,6 +679,9 @@
             const analytics = await import('./src/tools/analytics.js');
             window.usageAnalytics = new window.UsageAnalytics();
             window.usageAnalytics.init();
+            
+            // Load all modules on startup (no more selective loading)
+            await loadAllModules();
             
             // Start ticker after a brief delay to let everything initialize
             setTimeout(() => {
