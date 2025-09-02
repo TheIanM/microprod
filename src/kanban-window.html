@@ -10,305 +10,7 @@
     <link rel="stylesheet" href="iconoir.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="tools/tool-base.css">
-    <style>
-        /* Kanban-specific styles */
-        .kanban-window-container {
-            padding: 20px;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .kanban-window-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-shrink: 0;
-        }
-        
-        .kanban-window-title {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin: 0;
-        }
-        
-        .kanban-status {
-            font-size: 14px;
-            color: var(--text-secondary);
-            background: var(--background-secondary);
-            padding: 4px 12px;
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-        }
-        
-        .kanban-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .kanban-view-container {
-            flex: 1;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* Board Level 1: Priority Columns */
-        .priority-board {
-            display: flex;
-            gap: 20px;
-            height: 100%;
-            overflow-x: auto;
-            padding: 10px 0;
-        }
-        
-        .priority-column {
-            flex: 1;
-            min-width: 300px;
-            background: var(--background-secondary);
-            border-radius: 12px;
-            border: 2px solid var(--border-color);
-            padding: 16px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .priority-column-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .priority-column-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .priority-badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        
-        .priority-badge.high {
-            background: var(--danger);
-            color: white;
-        }
-        
-        .priority-badge.medium {
-            background: var(--warning);
-            color: white;
-        }
-        
-        .priority-badge.low {
-            background: var(--success);
-            color: white;
-        }
-        
-        .priority-column-content {
-            flex: 1;
-            overflow-y: auto;
-        }
-        
-        /* List Cards within Priority Columns */
-        .list-card {
-            background: var(--background);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-        
-        .list-card:hover {
-            border-color: var(--text-primary);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .list-card-title {
-            font-size: 16px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-        
-        .list-card-meta {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-        
-        .list-card-progress {
-            font-weight: 500;
-        }
-        
-        .list-card-due {
-            background: var(--background-secondary);
-            padding: 2px 6px;
-            border-radius: 4px;
-        }
-        
-        /* Add List Button */
-        .add-list-button {
-            background: var(--background);
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: var(--text-secondary);
-            font-weight: 500;
-        }
-        
-        .add-list-button:hover {
-            border-color: var(--text-primary);
-            color: var(--text-primary);
-            background: var(--background-secondary);
-        }
-        
-        /* Breadcrumb Navigation */
-        .kanban-breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-        
-        .breadcrumb-item {
-            color: var(--text-secondary);
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        .breadcrumb-item.active {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-        
-        .breadcrumb-separator {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-        
-        /* Board Level 2: Item Status Columns */
-        .status-board {
-            display: flex;
-            gap: 16px;
-            height: 100%;
-            overflow-x: auto;
-        }
-        
-        .status-column {
-            flex: 1;
-            min-width: 250px;
-            background: var(--background-secondary);
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .status-column-header {
-            font-size: 14px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border-color);
-            text-align: center;
-        }
-        
-        .status-column-content {
-            flex: 1;
-            overflow-y: auto;
-        }
-        
-        /* Item Cards within Status Columns */
-        .item-card {
-            background: var(--background);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            padding: 10px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            font-size: 14px;
-            line-height: 1.4;
-        }
-        
-        .item-card:hover {
-            border-color: var(--text-primary);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        
-        .item-card.completed {
-            text-decoration: line-through;
-            opacity: 0.7;
-        }
-        
-        /* Drag and Drop Styles */
-        .dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
-        }
-        
-        .drag-over {
-            border-color: var(--primary) !important;
-            background: rgba(var(--primary-rgb), 0.1) !important;
-        }
-        
-        /* Empty State */
-        .empty-state {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
-            color: var(--text-secondary);
-            text-align: center;
-        }
-        
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-        
-        .empty-state-title {
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-        
-        .empty-state-subtitle {
-            font-size: 14px;
-        }
-    </style>
+    <link rel="stylesheet" href="tools/kanban.css">
 </head>
 <body>
     <!-- Animated background circles -->
@@ -395,6 +97,9 @@
                         <div class="status-column-content" id="todo-status-content">
                             <!-- Todo items will be rendered here -->
                         </div>
+                        <div class="add-item-button" onclick="openAddItemModalWithStatus('todo')">
+                            <i class="iconoir-plus"></i> Add Item
+                        </div>
                     </div>
 
                     <div class="status-column" data-status="inprogress">
@@ -403,6 +108,9 @@
                         </div>
                         <div class="status-column-content" id="inprogress-status-content">
                             <!-- In progress items will be rendered here -->
+                        </div>
+                        <div class="add-item-button" onclick="openAddItemModalWithStatus('inprogress')">
+                            <i class="iconoir-plus"></i> Add Item
                         </div>
                     </div>
 
@@ -413,14 +121,81 @@
                         <div class="status-column-content" id="done-status-content">
                             <!-- Completed items will be rendered here -->
                         </div>
+                        <div class="add-item-button" onclick="openAddItemModalWithStatus('done')">
+                            <i class="iconoir-plus"></i> Add Item
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Add List Modal -->
+    <div class="modal" id="add-list-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">Add New List</h3>
+                <button class="modal-close" onclick="closeAddListModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="list-name">List Name</label>
+                    <input type="text" id="list-name" class="form-input" placeholder="Enter list name..." maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label for="list-priority">Priority</label>
+                    <select id="list-priority" class="form-input">
+                        <option value="high">High Priority</option>
+                        <option value="medium">Medium Priority</option>
+                        <option value="low">Low Priority</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="list-due-date">Due Date (Optional)</label>
+                    <input type="date" id="list-due-date" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="tool-btn" onclick="closeAddListModal()">Cancel</button>
+                <button class="tool-btn primary" onclick="createListFromModal()">Create List</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Item Modal -->
+    <div class="modal" id="add-item-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="item-modal-title">Add New Item</h3>
+                <button class="modal-close" onclick="closeAddItemModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="item-text">Item Description</label>
+                    <textarea id="item-text" class="form-input" placeholder="What needs to be done?" rows="3" maxlength="500"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="item-status">Status</label>
+                    <select id="item-status" class="form-input">
+                        <option value="todo">To Do</option>
+                        <option value="inprogress">In Progress</option>
+                        <option value="done">Done</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="item-due-date">Due Date (Optional)</label>
+                    <input type="date" id="item-due-date" class="form-input">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="tool-btn" onclick="closeAddItemModal()">Cancel</button>
+                <button class="tool-btn primary" onclick="createItemFromModal()">Add Item</button>
+            </div>
+        </div>
+    </div>
+
     <script type="module">
-        import { createAnimatedBackground, getDefaultCircles } from './animated-background.js';
+        import { createAnimatedBackground, getWindowCircles } from './animated-background.js';
 
         let currentWindow;
         let kanbanData = {
@@ -684,25 +459,153 @@
             `).join('');
         }
 
+        // Modal Functions
         function createNewList(priority) {
-            const name = prompt(`Enter name for new ${priority} priority list:`);
-            if (!name) return;
-            
+            // Open modal and set the priority
+            document.getElementById('list-priority').value = priority;
+            document.getElementById('modal-title').textContent = `Add New ${priority.charAt(0).toUpperCase() + priority.slice(1)} Priority List`;
+            document.getElementById('add-list-modal').style.display = 'flex';
+            document.getElementById('list-name').focus();
+        }
+
+        function closeAddListModal() {
+            document.getElementById('add-list-modal').style.display = 'none';
+            // Clear form
+            document.getElementById('list-name').value = '';
+            document.getElementById('list-due-date').value = '';
+        }
+
+        function createListFromModal() {
+            const name = document.getElementById('list-name').value.trim();
+            const priority = document.getElementById('list-priority').value;
+            const dueDate = document.getElementById('list-due-date').value || null;
+
+            if (!name) {
+                alert('Please enter a list name');
+                return;
+            }
+
             const listId = generateId();
             kanbanData.lists[listId] = {
                 id: listId,
                 name: name,
                 priority: priority,
-                dueDate: null,
+                dueDate: dueDate,
                 position: Object.keys(kanbanData.lists).length,
                 items: {},
                 createdAt: Date.now()
             };
-            
+
             saveKanbanData();
             renderCurrentView();
             updateStatus(`Created new ${priority} priority list: ${name}`);
+            closeAddListModal();
         }
+
+        function openAddItemModal(listId) {
+            kanbanData.activeListId = listId;
+            const list = kanbanData.lists[listId];
+            document.getElementById('item-modal-title').textContent = `Add Item to "${list.name}"`;
+            document.getElementById('add-item-modal').style.display = 'flex';
+            document.getElementById('item-text').focus();
+        }
+
+        function closeAddItemModal() {
+            document.getElementById('add-item-modal').style.display = 'none';
+            // Clear form
+            document.getElementById('item-text').value = '';
+            document.getElementById('item-status').value = 'todo';
+            document.getElementById('item-due-date').value = '';
+        }
+
+        function createItemFromModal() {
+            const text = document.getElementById('item-text').value.trim();
+            const status = document.getElementById('item-status').value;
+            const dueDate = document.getElementById('item-due-date').value || null;
+
+            if (!text) {
+                alert('Please enter an item description');
+                return;
+            }
+
+            if (!kanbanData.activeListId || !kanbanData.lists[kanbanData.activeListId]) {
+                alert('Error: No active list selected');
+                return;
+            }
+
+            const itemId = generateId();
+            const list = kanbanData.lists[kanbanData.activeListId];
+            list.items[itemId] = {
+                id: itemId,
+                text: text,
+                status: status,
+                dueDate: dueDate,
+                position: Object.keys(list.items).length,
+                linkedItems: [],
+                createdAt: Date.now(),
+                completedAt: status === 'done' ? Date.now() : null
+            };
+
+            saveKanbanData();
+            renderCurrentView();
+            updateStatus(`Added item to "${list.name}"`);
+            closeAddItemModal();
+        }
+
+        function openAddItemModalWithStatus(status) {
+            if (!kanbanData.activeListId || !kanbanData.lists[kanbanData.activeListId]) {
+                alert('Error: No active list selected');
+                return;
+            }
+            
+            const list = kanbanData.lists[kanbanData.activeListId];
+            document.getElementById('item-modal-title').textContent = `Add Item to "${list.name}"`;
+            document.getElementById('item-status').value = status;
+            document.getElementById('add-item-modal').style.display = 'flex';
+            document.getElementById('item-text').focus();
+        }
+
+        // Keyboard event handlers
+        function handleKeyPress(event) {
+            // Close modals on Escape
+            if (event.key === 'Escape') {
+                closeAddListModal();
+                closeAddItemModal();
+            }
+            
+            // Submit on Enter (Ctrl+Enter for textarea)
+            if (event.key === 'Enter') {
+                if (document.getElementById('add-list-modal').style.display === 'flex') {
+                    if (event.target.id === 'list-name') {
+                        createListFromModal();
+                    }
+                } else if (document.getElementById('add-item-modal').style.display === 'flex') {
+                    if (event.target.id === 'item-text' && event.ctrlKey) {
+                        createItemFromModal();
+                    }
+                }
+            }
+        }
+
+        // Add keyboard event listener
+        document.addEventListener('keydown', handleKeyPress);
+
+        // Close modals when clicking outside
+        function handleModalClick(event) {
+            if (event.target.classList.contains('modal')) {
+                closeAddListModal();
+                closeAddItemModal();
+            }
+        }
+
+        document.addEventListener('click', handleModalClick);
+
+        // Make modal functions global for onclick handlers
+        window.closeAddListModal = closeAddListModal;
+        window.createListFromModal = createListFromModal;
+        window.closeAddItemModal = closeAddItemModal;
+        window.createItemFromModal = createItemFromModal;
+        window.openAddItemModalWithStatus = openAddItemModalWithStatus;
 
         function openListItems(listId) {
             kanbanData.activeListId = listId;
@@ -751,21 +654,13 @@
             }
         }
 
-        function getSmallWindowCircles() {
-            return [
-                { x: 15, y: 15, size: 30, color: 'var(--udu-green)', duration: 18 },
-                { x: 85, y: 25, size: 40, color: 'var(--candu-blue)', duration: 22 },
-                { x: 50, y: 80, size: 35, color: 'var(--perfect-pink)', duration: 20 },
-                { x: 75, y: 70, size: 25, color: 'var(--udu-green)', duration: 16 }
-            ];
-        }
 
         // Initialize when page loads
         window.addEventListener('DOMContentLoaded', () => {
             initializeDarkMode();
             createAnimatedBackground({ 
                 containerId: 'animated-background',
-                circles: getSmallWindowCircles()
+                circles: getWindowCircles('kanban')
             });
             initializeKanbanWindow();
         });
