@@ -407,39 +407,59 @@ export class TodoListTool extends ToolBase {
     // Open dedicated kanban board window
     async openKanbanWindow() {
         try {
-            // Check if we have Tauri window management available
-            if (window.__TAURI__ && window.__TAURI__.window) {
-                const { getWindowConfig } = await import('../window-config.js');
-                const { getCurrentWindow } = window.__TAURI__.window;
-                const { Window } = window.__TAURI__.window;
-                
-                const config = getWindowConfig('kanban');
-                
-                // Create new kanban window
-                const kanbanWindow = new Window('kanban-board', {
-                    url: 'src/kanban-window.html',
-                    ...config
-                });
-                
-                console.log('✅ Kanban window created successfully');
-                
-                // Track window opening for analytics
-                if (window.usageAnalytics) {
-                    window.usageAnalytics.trackFeatureUsed('kanban_window_opened');
-                }
-                
-            } else {
-                // Fallback for browser mode - open in new tab/window
-                const kanbanUrl = window.location.origin + '/src/kanban-window.html';
+            if (!window.__TAURI__) {
+                // Browser fallback - open in new tab
+                const kanbanUrl = '../src/kanban-window.html';
                 const kanbanWindow = window.open(kanbanUrl, 'kanban-board', 
                     'width=1000,height=700,resizable=yes,scrollbars=yes');
                     
                 if (kanbanWindow) {
                     kanbanWindow.focus();
                     console.log('✅ Kanban window opened in browser mode');
+                    if (window.updateStatus) {
+                        window.updateStatus('Opened kanban board (browser mode)', 'primary', 2000);
+                    }
                 } else {
                     throw new Error('Failed to open kanban window - popup blocked?');
                 }
+                return;
+            }
+
+            // Use the same pattern as working memo/weather windows
+            if (window.__TAURI__.webview && window.__TAURI__.webviewWindow) {
+                const { webviewWindow } = window.__TAURI__;
+                
+                const windowLabel = `kanban-board-${Date.now()}`;
+                const windowTitle = `Kanban Board - ucanduit`;
+                    
+                const kanbanWindow = new webviewWindow.WebviewWindow(windowLabel, {
+                    url: '../src/kanban-window.html',
+                    title: windowTitle,
+                    width: 1000,
+                    height: 700,
+                    alwaysOnTop: false,
+                    decorations: true,
+                    transparent: false,
+                    titleBarStyle: 'overlay'
+                });
+
+                // Handle window events
+                kanbanWindow.once('tauri://created', () => {
+                    console.log('✅ Kanban window created successfully');
+                    if (window.updateStatus) {
+                        window.updateStatus('Kanban board opened', 'success', 2000);
+                    }
+                });
+
+                kanbanWindow.once('tauri://error', (error) => {
+                    console.error('❌ Kanban window creation error:', error);
+                    if (window.updateStatus) {
+                        window.updateStatus('Failed to open kanban board', 'danger', 3000);
+                    }
+                });
+                
+            } else {
+                throw new Error('webviewWindow API not available');
             }
             
         } catch (error) {
@@ -449,6 +469,10 @@ export class TodoListTool extends ToolBase {
             if (window.updateStatus) {
                 window.updateStatus('Error opening kanban board', 'danger', 3000);
             }
+            
+            // Fallback: open in browser tab
+            const fallbackUrl = '../src/kanban-window.html';
+            window.open(fallbackUrl, '_blank', 'width=1000,height=700');
         }
     }
     
