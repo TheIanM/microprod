@@ -227,6 +227,76 @@ export class LofiTool extends AudioToolBase {
         }
 
         this.container.innerHTML = `
+            <div class="lofi-header" style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-bottom: 20px;
+            ">
+                <!-- Album Icon - shown when playing -->
+                <div class="album-icon" id="album-icon" style="
+                    font-size: 32px;
+                    color: var(--accent-color, #4ecf9d);
+                    margin-bottom: 8px;
+                    display: none;
+                    animation: pulse 2s ease-in-out infinite;
+                ">
+                    <i class="iconoir-album-open"></i>
+                </div>
+                
+                <!-- Playback Controls -->
+                <div class="playback-controls" id="playback-controls" style="
+                    display: none;
+                    align-items: center;
+                    gap: 15px;
+                    margin-bottom: 15px;
+                ">
+                    <button class="control-btn" id="skip-back" style="
+                        background: none;
+                        border: none;
+                        color: var(--text-primary);
+                        font-size: 20px;
+                        cursor: pointer;
+                        padding: 8px;
+                        border-radius: 50%;
+                        transition: all 0.2s;
+                    " title="Previous Track">
+                        <i class="iconoir-skip-prev"></i>
+                    </button>
+                    
+                    <button class="control-btn play-pause-btn" id="play-pause" style="
+                        background: var(--accent-color, #4ecf9d);
+                        border: none;
+                        color: white;
+                        font-size: 24px;
+                        cursor: pointer;
+                        padding: 12px;
+                        border-radius: 50%;
+                        transition: all 0.2s;
+                        width: 48px;
+                        height: 48px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                    " title="Play/Pause">
+                        <i class="iconoir-pause" id="play-pause-icon"></i>
+                    </button>
+                    
+                    <button class="control-btn" id="skip-forward" style="
+                        background: none;
+                        border: none;
+                        color: var(--text-primary);
+                        font-size: 20px;
+                        cursor: pointer;
+                        padding: 8px;
+                        border-radius: 50%;
+                        transition: all 0.2s;
+                    " title="Next Track">
+                        <i class="iconoir-skip-next"></i>
+                    </button>
+                </div>
+            </div>
+            
             <div class="music-controls" style="
                 display: grid;
                 grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -264,12 +334,79 @@ export class LofiTool extends AudioToolBase {
             </div>
             
             ${this.getSliderStyles()}
+            ${this.getControlStyles()}
         `;
     }
     
     bindEvents() {
         console.log(`[LofiTool] bindEvents() called`);
         this.bindSliderEvents();
+        this.bindControlEvents();
+    }
+    
+    bindControlEvents() {
+        // Play/Pause button
+        const playPauseBtn = this.container.querySelector('#play-pause');
+        if (playPauseBtn) {
+            playPauseBtn.addEventListener('click', () => {
+                this.togglePlayPause();
+            });
+        }
+        
+        // Skip back button
+        const skipBackBtn = this.container.querySelector('#skip-back');
+        if (skipBackBtn) {
+            skipBackBtn.addEventListener('click', () => {
+                this.skipToTrack('previous');
+            });
+        }
+        
+        // Skip forward button
+        const skipForwardBtn = this.container.querySelector('#skip-forward');
+        if (skipForwardBtn) {
+            skipForwardBtn.addEventListener('click', () => {
+                this.skipToTrack('next');
+            });
+        }
+    }
+    
+    // Add styles for control buttons
+    getControlStyles() {
+        return `
+            <style>
+                @keyframes pulse {
+                    0%, 100% { transform: scale(1); opacity: 1; }
+                    50% { transform: scale(1.1); opacity: 0.8; }
+                }
+                
+                .control-btn:hover {
+                    transform: scale(1.1);
+                    background-color: var(--background-hover, rgba(78, 207, 157, 0.1)) !important;
+                }
+                
+                .play-pause-btn:hover {
+                    background-color: var(--accent-hover, #3fb88a) !important;
+                    transform: scale(1.05);
+                }
+                
+                .control-btn:active {
+                    transform: scale(0.95);
+                }
+                
+                .playback-controls {
+                    animation: fadeIn 0.3s ease-in-out;
+                }
+                
+                .album-icon {
+                    animation: fadeIn 0.5s ease-in-out;
+                }
+                
+                @keyframes fadeIn {
+                    from { opacity: 0; transform: translateY(-10px); }
+                    to { opacity: 1; transform: translateY(0); }
+                }
+            </style>
+        `;
     }
     
     // Implement base class method for getting volume percentage
@@ -638,15 +775,67 @@ export class LofiTool extends AudioToolBase {
         this.loadNextBatchIfNeeded(music);
     }
     
-    // Play next track in sequence
-    playNextTrack(soundName) {
+    // Play next track in sequence with crossfade (adapted from ambient-sounds-loops)
+    playNextTrack(soundName, forceSkip = false) {
         const music = this.sounds[soundName];
-        if (!music || !music.isPlaying || music.audioElements.length <= 1) return;
+        if (!music || (!music.isPlaying && !forceSkip) || music.audioElements.length <= 1) return;
         
-        // Stop current track
-        this.stopCurrentTrack(music);
+        if (forceSkip) {
+            // Immediate transition for manual skip
+            this.stopCurrentTrack(music);
+            
+            const availableIndices = music.audioElements
+                .map((_, index) => index)
+                .filter(index => index !== music.currentIndex);
+            
+            if (availableIndices.length > 0) {
+                const nextIndex = availableIndices[Math.floor(Math.random() * availableIndices.length)];
+                this.startTrackAtIndex(soundName, nextIndex);
+            }
+            return;
+        }
         
-        // Select next random track (different from current)
+        // Crossfade transition (adapted from ambient-sounds rotateSound method)
+        const currentElement = music.audioElements[music.currentIndex];
+        const currentVolume = music.volume;
+        
+        // Fade out current track
+        const fadeOutInterval = setInterval(() => {
+            let currentFadeVolume;
+            
+            if (music.currentGainNode) {
+                // Web Audio API fade out
+                currentFadeVolume = music.currentGainNode.gain.value;
+                if (currentFadeVolume > 0.05) {
+                    const newVolume = Math.max(0.05, currentFadeVolume - 0.1);
+                    music.currentGainNode.gain.setValueAtTime(newVolume, this.audioContext.currentTime);
+                } else {
+                    clearInterval(fadeOutInterval);
+                    this.stopCurrentTrack(music);
+                    this.startNextTrackWithFadeIn(soundName, currentVolume);
+                }
+            } else if (currentElement && currentElement.audio) {
+                // HTML5 Audio fade out
+                currentFadeVolume = currentElement.audio.volume;
+                if (currentFadeVolume > 0.05) {
+                    currentElement.audio.volume = Math.max(0.05, currentFadeVolume - 0.1);
+                } else {
+                    clearInterval(fadeOutInterval);
+                    this.stopCurrentTrack(music);
+                    this.startNextTrackWithFadeIn(soundName, currentVolume);
+                }
+            } else {
+                clearInterval(fadeOutInterval);
+                this.startNextTrackWithFadeIn(soundName, currentVolume);
+            }
+        }, 150); // Faster fade than ambient sounds for music
+    }
+    
+    // Start next track with fade in (helper method)
+    startNextTrackWithFadeIn(soundName, targetVolume) {
+        const music = this.sounds[soundName];
+        
+        // Select next random track
         const availableIndices = music.audioElements
             .map((_, index) => index)
             .filter(index => index !== music.currentIndex);
@@ -658,19 +847,20 @@ export class LofiTool extends AudioToolBase {
             music.currentIndex = nextIndex;
             music.filesUsed++;
             
-            console.log(`🎵 Auto-playing next track: ${nextElement.file}`);
+            console.log(`🎵 Crossfading to next track: ${nextElement.file}`);
             
             // Update now playing display
             this.updateNowPlaying(this.extractTrackName(nextElement.file));
             
-            // Start the next track
+            // Start the next track at low volume
             if (nextElement.useWebAudio) {
+                // Web Audio API
                 const source = this.audioContext.createBufferSource();
                 source.buffer = nextElement.audioBuffer;
                 source.loop = false;
                 
                 const gainNode = this.audioContext.createGain();
-                gainNode.gain.value = music.volume;
+                gainNode.gain.value = 0.05; // Start very quiet
                 
                 source.connect(gainNode);
                 gainNode.connect(this.masterGain);
@@ -683,16 +873,53 @@ export class LofiTool extends AudioToolBase {
                 
                 music.currentSource = source;
                 music.currentGainNode = gainNode;
+                
+                // Fade in new track
+                const fadeInInterval = setInterval(() => {
+                    const currentFadeVolume = gainNode.gain.value;
+                    if (currentFadeVolume < targetVolume) {
+                        const newVolume = Math.min(targetVolume, currentFadeVolume + 0.1);
+                        gainNode.gain.setValueAtTime(newVolume, this.audioContext.currentTime);
+                    } else {
+                        clearInterval(fadeInInterval);
+                    }
+                }, 150);
+                
             } else {
+                // HTML5 Audio
                 if (nextElement.gainNode) {
-                    nextElement.gainNode.gain.value = music.volume;
+                    nextElement.gainNode.gain.value = 0.05;
                     nextElement.audio.volume = 1.0;
                 } else {
-                    nextElement.audio.volume = music.volume;
+                    nextElement.audio.volume = 0.05;
                 }
                 nextElement.audio.currentTime = 0;
                 nextElement.audio.play();
+                
+                // Fade in new track
+                const fadeInInterval = setInterval(() => {
+                    let currentFadeVolume;
+                    if (nextElement.gainNode) {
+                        currentFadeVolume = nextElement.gainNode.gain.value;
+                        if (currentFadeVolume < targetVolume) {
+                            const newVolume = Math.min(targetVolume, currentFadeVolume + 0.1);
+                            nextElement.gainNode.gain.setValueAtTime(newVolume, this.audioContext.currentTime);
+                        } else {
+                            clearInterval(fadeInInterval);
+                        }
+                    } else {
+                        currentFadeVolume = nextElement.audio.volume;
+                        if (currentFadeVolume < targetVolume) {
+                            nextElement.audio.volume = Math.min(targetVolume, currentFadeVolume + 0.1);
+                        } else {
+                            clearInterval(fadeInInterval);
+                        }
+                    }
+                }, 150);
             }
+            
+            music.isPlaying = true;
+            music.isPaused = false;
             
             // Check if we need to load more tracks
             this.loadNextBatchIfNeeded(music);
@@ -727,17 +954,222 @@ export class LofiTool extends AudioToolBase {
         }
     }
     
-    // Update the now playing display
+    // Update the now playing display and show/hide controls
     updateNowPlaying(trackName) {
         const nowPlayingEl = this.container.querySelector('#now-playing');
-        if (nowPlayingEl) {
-            if (trackName) {
+        const albumIcon = this.container.querySelector('#album-icon');
+        const playbackControls = this.container.querySelector('#playback-controls');
+        
+        if (trackName) {
+            // Show now playing
+            if (nowPlayingEl) {
                 nowPlayingEl.textContent = `♪ Now Playing: ${trackName}`;
                 nowPlayingEl.style.display = 'block';
-            } else {
+            }
+            
+            // Show album icon and controls
+            if (albumIcon) {
+                albumIcon.style.display = 'block';
+            }
+            if (playbackControls) {
+                playbackControls.style.display = 'flex';
+            }
+            
+            // Update play/pause button to show pause icon
+            this.updatePlayPauseIcon(true);
+        } else {
+            // Hide everything when not playing
+            if (nowPlayingEl) {
                 nowPlayingEl.style.display = 'none';
             }
+            if (albumIcon) {
+                albumIcon.style.display = 'none';
+            }
+            if (playbackControls) {
+                playbackControls.style.display = 'none';
+            }
         }
+    }
+    
+    // Update play/pause button icon
+    updatePlayPauseIcon(isPlaying) {
+        const playPauseIcon = this.container.querySelector('#play-pause-icon');
+        if (playPauseIcon) {
+            if (isPlaying) {
+                playPauseIcon.className = 'iconoir-pause';
+            } else {
+                playPauseIcon.className = 'iconoir-play';
+            }
+        }
+    }
+    
+    // Toggle play/pause
+    togglePlayPause() {
+        // Find the active music (first one that's playing)
+        for (const [soundName, music] of Object.entries(this.sounds)) {
+            if (music.volume > 0) {
+                if (music.isPlaying) {
+                    this.pauseSound(soundName);
+                } else {
+                    this.resumeSound(soundName);
+                }
+                break;
+            }
+        }
+    }
+    
+    // Pause sound (without stopping completely)
+    pauseSound(soundName) {
+        if (!this.sounds[soundName]) return;
+        
+        const music = this.sounds[soundName];
+        if (!music.isPlaying) return;
+        
+        if (music.currentSource) {
+            // Web Audio API - can't pause, so we'll stop and remember position
+            music.currentSource.stop();
+            music.currentSource = null;
+            music.currentGainNode = null;
+        } else if (music.audioElements[music.currentIndex]) {
+            // HTML5 Audio - can pause
+            const element = music.audioElements[music.currentIndex];
+            if (element.audio) {
+                element.audio.pause();
+            }
+        }
+        
+        music.isPlaying = false;
+        music.isPaused = true;
+        this.updatePlayPauseIcon(false);
+    }
+    
+    // Resume sound
+    resumeSound(soundName) {
+        if (!this.sounds[soundName]) return;
+        
+        const music = this.sounds[soundName];
+        if (music.isPlaying || !music.isPaused) return;
+        
+        if (music.audioElements[music.currentIndex]) {
+            const element = music.audioElements[music.currentIndex];
+            
+            if (element.useWebAudio) {
+                // Web Audio API - need to create new source (can't resume)
+                const source = this.audioContext.createBufferSource();
+                source.buffer = element.audioBuffer;
+                source.loop = false;
+                
+                const gainNode = this.audioContext.createGain();
+                gainNode.gain.value = music.volume;
+                
+                source.connect(gainNode);
+                gainNode.connect(this.masterGain);
+                
+                source.addEventListener('ended', () => {
+                    this.playNextTrack(soundName);
+                });
+                
+                source.start();
+                
+                music.currentSource = source;
+                music.currentGainNode = gainNode;
+            } else {
+                // HTML5 Audio - resume
+                if (element.audio) {
+                    element.audio.play();
+                }
+            }
+        }
+        
+        music.isPlaying = true;
+        music.isPaused = false;
+        this.updatePlayPauseIcon(true);
+    }
+    
+    // Skip to previous or next track
+    skipToTrack(direction) {
+        // Find the active music
+        for (const [soundName, music] of Object.entries(this.sounds)) {
+            if (music.volume > 0 && (music.isPlaying || music.isPaused)) {
+                if (direction === 'next') {
+                    this.playNextTrack(soundName, true); // Force skip
+                } else {
+                    this.playPreviousTrack(soundName);
+                }
+                break;
+            }
+        }
+    }
+    
+    // Play previous track
+    playPreviousTrack(soundName) {
+        const music = this.sounds[soundName];
+        if (!music || music.audioElements.length <= 1) return;
+        
+        // Stop current track
+        this.stopCurrentTrack(music);
+        
+        // Get previous index
+        let prevIndex = music.currentIndex - 1;
+        if (prevIndex < 0) {
+            prevIndex = music.audioElements.length - 1;
+        }
+        
+        // Start previous track
+        this.startTrackAtIndex(soundName, prevIndex);
+    }
+    
+    // Start a specific track by index
+    startTrackAtIndex(soundName, index) {
+        const music = this.sounds[soundName];
+        if (!music || !music.audioElements[index]) return;
+        
+        const selectedElement = music.audioElements[index];
+        console.log(`🎵 Playing ${soundName} track ${index}: ${selectedElement.file}`);
+        
+        // Update now playing display
+        this.updateNowPlaying(this.extractTrackName(selectedElement.file));
+        
+        if (selectedElement.useWebAudio) {
+            // Web Audio API playback
+            const source = this.audioContext.createBufferSource();
+            source.buffer = selectedElement.audioBuffer;
+            source.loop = false;
+            
+            const gainNode = this.audioContext.createGain();
+            gainNode.gain.value = music.volume;
+            
+            source.connect(gainNode);
+            gainNode.connect(this.masterGain);
+            
+            source.addEventListener('ended', () => {
+                this.playNextTrack(soundName);
+            });
+            
+            source.start();
+            
+            music.currentSource = source;
+            music.currentGainNode = gainNode;
+        } else {
+            // HTML5 Audio playback
+            selectedElement.audio.currentTime = 0;
+            
+            if (selectedElement.gainNode) {
+                selectedElement.gainNode.gain.value = music.volume;
+                selectedElement.audio.volume = 1.0;
+            } else {
+                selectedElement.audio.volume = music.volume;
+            }
+            
+            selectedElement.audio.play();
+        }
+        
+        music.isPlaying = true;
+        music.isPaused = false;
+        music.currentIndex = index;
+        music.filesUsed++;
+        
+        this.loadNextBatchIfNeeded(music);
     }
     
     async setVolume(soundName, volume) {
