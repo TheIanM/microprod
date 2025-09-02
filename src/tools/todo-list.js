@@ -24,7 +24,12 @@ export class TodoListTool extends ToolBase {
             <div class="tool-container">
                 <div class="tool-header">
                     <div class="todo-breadcrumb tool-title"></div>
-                    <button class="tool-btn add-button">+ Add</button>
+                    <div class="tool-header-actions">
+                        <button class="tool-btn kanban-button" title="Open Kanban Board">
+                            <i class="iconoir-kanban-board"></i>
+                        </button>
+                        <button class="tool-btn add-button">+ Add</button>
+                    </div>
                 </div>
                 
                 <div class="tool-content">
@@ -95,6 +100,17 @@ export class TodoListTool extends ToolBase {
                 .back-button {
                     margin-right: 10px;
                 }
+                
+                .tool-header-actions {
+                    display: flex;
+                    gap: 8px;
+                    align-items: center;
+                }
+                
+                .kanban-button {
+                    padding: 8px 10px;
+                    font-size: 16px;
+                }
             </style>
         `;
         
@@ -103,11 +119,13 @@ export class TodoListTool extends ToolBase {
     
     bindEvents() {
         const addButton = this.find('.add-button');
+        const kanbanButton = this.find('.kanban-button');
         const confirmAdd = this.find('.confirm-add');
         const cancelAdd = this.find('.cancel-add');
         const newItemInput = this.find('.new-item-text');
         
         if (addButton) addButton.addEventListener('click', () => this.showAddInput());
+        if (kanbanButton) kanbanButton.addEventListener('click', () => this.openKanbanWindow());
         if (confirmAdd) confirmAdd.addEventListener('click', async () => await this.handleAdd());
         if (cancelAdd) cancelAdd.addEventListener('click', () => this.hideAddInput());
         
@@ -382,6 +400,54 @@ export class TodoListTool extends ToolBase {
                 }
             } catch (error) {
                 console.error('❌ Failed to migrate old todos:', error);
+            }
+        }
+    }
+    
+    // Open dedicated kanban board window
+    async openKanbanWindow() {
+        try {
+            // Check if we have Tauri window management available
+            if (window.__TAURI__ && window.__TAURI__.window) {
+                const { getWindowConfig } = await import('../window-config.js');
+                const { getCurrentWindow } = window.__TAURI__.window;
+                const { Window } = window.__TAURI__.window;
+                
+                const config = getWindowConfig('kanban');
+                
+                // Create new kanban window
+                const kanbanWindow = new Window('kanban-board', {
+                    url: 'src/kanban-window.html',
+                    ...config
+                });
+                
+                console.log('✅ Kanban window created successfully');
+                
+                // Track window opening for analytics
+                if (window.usageAnalytics) {
+                    window.usageAnalytics.trackFeatureUsed('kanban_window_opened');
+                }
+                
+            } else {
+                // Fallback for browser mode - open in new tab/window
+                const kanbanUrl = window.location.origin + '/src/kanban-window.html';
+                const kanbanWindow = window.open(kanbanUrl, 'kanban-board', 
+                    'width=1000,height=700,resizable=yes,scrollbars=yes');
+                    
+                if (kanbanWindow) {
+                    kanbanWindow.focus();
+                    console.log('✅ Kanban window opened in browser mode');
+                } else {
+                    throw new Error('Failed to open kanban window - popup blocked?');
+                }
+            }
+            
+        } catch (error) {
+            console.error('❌ Failed to open kanban window:', error);
+            
+            // Show user-friendly error message
+            if (window.updateStatus) {
+                window.updateStatus('Error opening kanban board', 'danger', 3000);
             }
         }
     }

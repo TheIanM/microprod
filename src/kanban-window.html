@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kanban Board - ucanduit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="iconoir.css">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="tools/tool-base.css">
+    <style>
+        /* Kanban-specific styles */
+        .kanban-window-container {
+            padding: 20px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .kanban-window-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-shrink: 0;
+        }
+        
+        .kanban-window-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        
+        .kanban-status {
+            font-size: 14px;
+            color: var(--text-secondary);
+            background: var(--background-secondary);
+            padding: 4px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .kanban-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .kanban-view-container {
+            flex: 1;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Board Level 1: Priority Columns */
+        .priority-board {
+            display: flex;
+            gap: 20px;
+            height: 100%;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+        
+        .priority-column {
+            flex: 1;
+            min-width: 300px;
+            background: var(--background-secondary);
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .priority-column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .priority-column-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .priority-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .priority-badge.high {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .priority-badge.medium {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .priority-badge.low {
+            background: var(--success);
+            color: white;
+        }
+        
+        .priority-column-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        /* List Cards within Priority Columns */
+        .list-card {
+            background: var(--background);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .list-card:hover {
+            border-color: var(--text-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .list-card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+        
+        .list-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .list-card-progress {
+            font-weight: 500;
+        }
+        
+        .list-card-due {
+            background: var(--background-secondary);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        /* Add List Button */
+        .add-list-button {
+            background: var(--background);
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .add-list-button:hover {
+            border-color: var(--text-primary);
+            color: var(--text-primary);
+            background: var(--background-secondary);
+        }
+        
+        /* Breadcrumb Navigation */
+        .kanban-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .breadcrumb-item {
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .breadcrumb-item.active {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        
+        .breadcrumb-separator {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+        
+        /* Board Level 2: Item Status Columns */
+        .status-board {
+            display: flex;
+            gap: 16px;
+            height: 100%;
+            overflow-x: auto;
+        }
+        
+        .status-column {
+            flex: 1;
+            min-width: 250px;
+            background: var(--background-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .status-column-header {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: center;
+        }
+        
+        .status-column-content {
+            flex: 1;
+            overflow-y: auto;
+        }
+        
+        /* Item Cards within Status Columns */
+        .item-card {
+            background: var(--background);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        
+        .item-card:hover {
+            border-color: var(--text-primary);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .item-card.completed {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        /* Drag and Drop Styles */
+        .dragging {
+            opacity: 0.5;
+            transform: rotate(5deg);
+        }
+        
+        .drag-over {
+            border-color: var(--primary) !important;
+            background: rgba(var(--primary-rgb), 0.1) !important;
+        }
+        
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+            text-align: center;
+        }
+        
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+        
+        .empty-state-title {
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        
+        .empty-state-subtitle {
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background circles -->
+    <div class="animated-background" id="animated-background"></div>
+    
+    <div class="kanban-window-container">
+        <div class="kanban-window-header">
+            <h1 class="kanban-window-title" id="kanban-window-title">
+                <i class="iconoir-kanban-board"></i> Kanban Board
+            </h1>
+            <div class="kanban-status" id="kanban-status">Loading...</div>
+        </div>
+
+        <div class="kanban-content">
+            <!-- Breadcrumb Navigation -->
+            <div class="kanban-breadcrumb" id="kanban-breadcrumb" style="display: none;">
+                <!-- Breadcrumb items will be dynamically inserted -->
+            </div>
+
+            <!-- Main Kanban View Container -->
+            <div class="kanban-view-container" id="kanban-view-container">
+                <!-- Board Level 1: Priority Columns (default view) -->
+                <div class="priority-board" id="priority-board">
+                    
+                    <!-- High Priority Column -->
+                    <div class="priority-column" data-priority="high">
+                        <div class="priority-column-header">
+                            <div class="priority-column-title">
+                                <i class="iconoir-warning-triangle"></i>
+                                High Priority
+                                <span class="priority-badge high">High</span>
+                            </div>
+                        </div>
+                        <div class="priority-column-content" id="high-priority-content">
+                            <!-- High priority lists will be rendered here -->
+                        </div>
+                        <div class="add-list-button" data-priority="high">
+                            <i class="iconoir-plus"></i> Add High Priority List
+                        </div>
+                    </div>
+
+                    <!-- Medium Priority Column -->
+                    <div class="priority-column" data-priority="medium">
+                        <div class="priority-column-header">
+                            <div class="priority-column-title">
+                                <i class="iconoir-clock"></i>
+                                Medium Priority
+                                <span class="priority-badge medium">Medium</span>
+                            </div>
+                        </div>
+                        <div class="priority-column-content" id="medium-priority-content">
+                            <!-- Medium priority lists will be rendered here -->
+                        </div>
+                        <div class="add-list-button" data-priority="medium">
+                            <i class="iconoir-plus"></i> Add Medium Priority List
+                        </div>
+                    </div>
+
+                    <!-- Low Priority Column -->
+                    <div class="priority-column" data-priority="low">
+                        <div class="priority-column-header">
+                            <div class="priority-column-title">
+                                <i class="iconoir-check-circle"></i>
+                                Low Priority
+                                <span class="priority-badge low">Low</span>
+                            </div>
+                        </div>
+                        <div class="priority-column-content" id="low-priority-content">
+                            <!-- Low priority lists will be rendered here -->
+                        </div>
+                        <div class="add-list-button" data-priority="low">
+                            <i class="iconoir-plus"></i> Add Low Priority List
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Board Level 2: Item Status Columns (shown when drilling into a list) -->
+                <div class="status-board" id="status-board" style="display: none;">
+                    
+                    <div class="status-column" data-status="todo">
+                        <div class="status-column-header">
+                            <i class="iconoir-list"></i> To Do
+                        </div>
+                        <div class="status-column-content" id="todo-status-content">
+                            <!-- Todo items will be rendered here -->
+                        </div>
+                    </div>
+
+                    <div class="status-column" data-status="inprogress">
+                        <div class="status-column-header">
+                            <i class="iconoir-play"></i> In Progress
+                        </div>
+                        <div class="status-column-content" id="inprogress-status-content">
+                            <!-- In progress items will be rendered here -->
+                        </div>
+                    </div>
+
+                    <div class="status-column" data-status="done">
+                        <div class="status-column-header">
+                            <i class="iconoir-check"></i> Done
+                        </div>
+                        <div class="status-column-content" id="done-status-content">
+                            <!-- Completed items will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { createAnimatedBackground, getDefaultCircles } from './animated-background.js';
+
+        let currentWindow;
+        let kanbanData = {
+            lists: {},
+            currentView: 'priority', // 'priority' or 'status'
+            activeListId: null
+        };
+
+        // Initialize kanban window
+        async function initializeKanbanWindow() {
+            try {
+                // Wait for Tauri APIs
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                while (attempts < maxAttempts) {
+                    if (window.__TAURI__ && window.__TAURI__.window) {
+                        break;
+                    }
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    attempts++;
+                }
+
+                if (attempts >= maxAttempts) {
+                    console.warn('Tauri API not available, running in browser mode');
+                }
+
+                // Get current window reference
+                if (window.__TAURI__) {
+                    const { getCurrentWindow } = window.__TAURI__.window;
+                    currentWindow = getCurrentWindow();
+                    window.tauriWindow = currentWindow;
+                }
+
+                // Load kanban data
+                await loadKanbanData();
+                
+                // Initialize UI
+                bindEvents();
+                renderCurrentView();
+                
+                updateStatus('Kanban board ready');
+
+                console.log('✅ Kanban window initialization complete');
+
+            } catch (error) {
+                console.error('Error initializing kanban window:', error);
+                updateStatus('Error: ' + error.message);
+            }
+        }
+
+        async function loadKanbanData() {
+            try {
+                // First try to load from external file using Tauri
+                if (window.__TAURI__ && window.__TAURI__.core) {
+                    const fileData = await window.__TAURI__.core.invoke('read_json_file', {
+                        filename: 'ucanduit-todos.json'
+                    });
+                    if (fileData) {
+                        // Transform existing data to kanban format
+                        kanbanData.lists = transformToKanbanFormat(fileData);
+                        console.log('✅ Kanban data loaded from external file');
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.log('📁 No external todos file found, checking localStorage...');
+            }
+            
+            try {
+                // Fallback to localStorage
+                const storedData = localStorage.getItem('ucanduit-todos');
+                if (storedData) {
+                    const data = JSON.parse(storedData);
+                    kanbanData.lists = transformToKanbanFormat(data);
+                    console.log('✅ Kanban data loaded from localStorage');
+                }
+            } catch (error) {
+                console.error('❌ Failed to load kanban data:', error);
+                kanbanData.lists = {};
+            }
+        }
+
+        // Transform existing todo data to kanban format
+        function transformToKanbanFormat(oldData) {
+            const newData = {};
+            
+            Object.keys(oldData).forEach(listId => {
+                const oldList = oldData[listId];
+                newData[listId] = {
+                    id: listId,
+                    name: oldList.name,
+                    priority: 'medium', // Default priority for existing lists
+                    dueDate: null,
+                    position: 0,
+                    createdAt: oldList.createdAt,
+                    items: {}
+                };
+                
+                // Transform items
+                if (oldList.items && Array.isArray(oldList.items)) {
+                    oldList.items.forEach((item, index) => {
+                        const itemId = item.id || generateId();
+                        newData[listId].items[itemId] = {
+                            id: itemId,
+                            text: item.text,
+                            status: item.completed ? 'done' : 'todo',
+                            dueDate: null,
+                            position: index,
+                            linkedItems: [],
+                            createdAt: item.createdAt,
+                            completedAt: item.completedAt
+                        };
+                    });
+                }
+            });
+            
+            return newData;
+        }
+
+        async function saveKanbanData() {
+            const data = kanbanData.lists;
+            
+            try {
+                if (window.__TAURI__ && window.__TAURI__.core) {
+                    await window.__TAURI__.core.invoke('write_json_file', {
+                        filename: 'ucanduit-todos.json',
+                        data: data
+                    });
+                    console.log('✅ Kanban data saved to external file');
+                } else {
+                    localStorage.setItem('ucanduit-todos', JSON.stringify(data));
+                    console.log('✅ Kanban data saved to localStorage');
+                }
+            } catch (error) {
+                console.error('❌ Failed to save kanban data:', error);
+            }
+        }
+
+        function bindEvents() {
+            // Add list buttons
+            document.querySelectorAll('.add-list-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const priority = e.currentTarget.dataset.priority;
+                    createNewList(priority);
+                });
+            });
+        }
+
+        function renderCurrentView() {
+            if (kanbanData.currentView === 'priority') {
+                renderPriorityView();
+            } else if (kanbanData.currentView === 'status') {
+                renderStatusView();
+            }
+        }
+
+        function renderPriorityView() {
+            document.getElementById('priority-board').style.display = 'flex';
+            document.getElementById('status-board').style.display = 'none';
+            document.getElementById('kanban-breadcrumb').style.display = 'none';
+            
+            // Render lists in each priority column
+            const priorities = ['high', 'medium', 'low'];
+            priorities.forEach(priority => {
+                renderListsForPriority(priority);
+            });
+        }
+
+        function renderListsForPriority(priority) {
+            const container = document.getElementById(`${priority}-priority-content`);
+            const lists = Object.values(kanbanData.lists).filter(list => list.priority === priority);
+            
+            if (lists.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon"><i class="iconoir-clipboard-check"></i></div>
+                        <div class="empty-state-title">No ${priority} priority lists</div>
+                        <div class="empty-state-subtitle">Click "Add List" to get started</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = lists.map(list => {
+                const totalItems = Object.keys(list.items).length;
+                const completedItems = Object.values(list.items).filter(item => item.status === 'done').length;
+                const progressPercent = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+                
+                return `
+                    <div class="list-card" data-list-id="${list.id}">
+                        <div class="list-card-title">${list.name}</div>
+                        <div class="list-card-meta">
+                            <div class="list-card-progress">${completedItems}/${totalItems} • ${progressPercent}%</div>
+                            ${list.dueDate ? `<div class="list-card-due">${formatDate(list.dueDate)}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            // Bind list card clicks
+            container.querySelectorAll('.list-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const listId = card.dataset.listId;
+                    openListItems(listId);
+                });
+            });
+        }
+
+        function renderStatusView() {
+            document.getElementById('priority-board').style.display = 'none';
+            document.getElementById('status-board').style.display = 'flex';
+            
+            // Update breadcrumb
+            const list = kanbanData.lists[kanbanData.activeListId];
+            if (list) {
+                const breadcrumb = document.getElementById('kanban-breadcrumb');
+                breadcrumb.style.display = 'flex';
+                breadcrumb.innerHTML = `
+                    <span class="breadcrumb-item" onclick="showPriorityView()">
+                        <i class="iconoir-arrow-left"></i> Back to Board
+                    </span>
+                    <span class="breadcrumb-separator">•</span>
+                    <span class="breadcrumb-item active">${list.name}</span>
+                `;
+            }
+            
+            // Render items in each status column
+            const statuses = ['todo', 'inprogress', 'done'];
+            statuses.forEach(status => {
+                renderItemsForStatus(status);
+            });
+        }
+
+        function renderItemsForStatus(status) {
+            const container = document.getElementById(`${status}-status-content`);
+            const list = kanbanData.lists[kanbanData.activeListId];
+            
+            if (!list) {
+                container.innerHTML = '<div class="empty-state">List not found</div>';
+                return;
+            }
+            
+            const items = Object.values(list.items).filter(item => item.status === status);
+            
+            if (items.length === 0) {
+                const statusNames = { todo: 'To Do', inprogress: 'In Progress', done: 'Done' };
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-subtitle">No ${statusNames[status]} items</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = items.map(item => `
+                <div class="item-card ${item.status === 'done' ? 'completed' : ''}" data-item-id="${item.id}">
+                    ${item.text}
+                    ${item.dueDate ? `<div class="item-due" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${formatDate(item.dueDate)}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        function createNewList(priority) {
+            const name = prompt(`Enter name for new ${priority} priority list:`);
+            if (!name) return;
+            
+            const listId = generateId();
+            kanbanData.lists[listId] = {
+                id: listId,
+                name: name,
+                priority: priority,
+                dueDate: null,
+                position: Object.keys(kanbanData.lists).length,
+                items: {},
+                createdAt: Date.now()
+            };
+            
+            saveKanbanData();
+            renderCurrentView();
+            updateStatus(`Created new ${priority} priority list: ${name}`);
+        }
+
+        function openListItems(listId) {
+            kanbanData.activeListId = listId;
+            kanbanData.currentView = 'status';
+            renderCurrentView();
+            
+            const list = kanbanData.lists[listId];
+            updateStatus(`Viewing items in: ${list.name}`);
+        }
+
+        function showPriorityView() {
+            kanbanData.currentView = 'priority';
+            kanbanData.activeListId = null;
+            renderCurrentView();
+            updateStatus('Back to priority board');
+        }
+
+        // Make showPriorityView global for breadcrumb
+        window.showPriorityView = showPriorityView;
+
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }
+
+        function updateStatus(message) {
+            const statusEl = document.getElementById('kanban-status');
+            if (statusEl) {
+                statusEl.textContent = message;
+            }
+        }
+
+        function initializeDarkMode() {
+            try {
+                const savedTheme = localStorage.getItem('ucanduit-theme');
+                if (savedTheme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch (error) {
+                console.log('Could not load theme preference:', error);
+            }
+        }
+
+        function getSmallWindowCircles() {
+            return [
+                { x: 15, y: 15, size: 30, color: 'var(--udu-green)', duration: 18 },
+                { x: 85, y: 25, size: 40, color: 'var(--candu-blue)', duration: 22 },
+                { x: 50, y: 80, size: 35, color: 'var(--perfect-pink)', duration: 20 },
+                { x: 75, y: 70, size: 25, color: 'var(--udu-green)', duration: 16 }
+            ];
+        }
+
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeDarkMode();
+            createAnimatedBackground({ 
+                containerId: 'animated-background',
+                circles: getSmallWindowCircles()
+            });
+            initializeKanbanWindow();
+        });
+    </script>
+</body>
+</html>

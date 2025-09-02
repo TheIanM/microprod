@@ -186,35 +186,16 @@
         window.loadedTools = {};
         window.persistentAudio = {}; // Store audio state for collapsed tools
         
-        // Collapsible section functions with ES6 module loading
+        // Collapsible section functions - tools are already loaded with proper containers
         window.toggleSection = async function(sectionName) {
             const content = document.getElementById(sectionName + '-content');
             const toggle = document.getElementById(sectionName + '-toggle');
             
-            const wasCollapsed = content.classList.contains('collapsed');
+            // Simply toggle visibility - tools are already loaded with correct containers
             content.classList.toggle('collapsed');
             toggle.classList.toggle('collapsed');
             
-            // Update container reference when expanding (tool already loaded at startup)
-            if (wasCollapsed && window.loadedTools[sectionName]) {
-                // Expanding - update the tool's container reference
-                try {
-                    const toolInstance = window.loadedTools[sectionName];
-                    if (toolInstance.updateContainer) {
-                        toolInstance.updateContainer(content);
-                    } else {
-                        // Fallback: reinitialize the tool's UI in the new container
-                        toolInstance.container = content;
-                        if (toolInstance.render) {
-                            toolInstance.render();
-                        }
-                    }
-                    console.log(`Updated container for ${sectionName} tool module`);
-                } catch (error) {
-                    console.error(`Failed to update container for ${sectionName} tool:`, error);
-                }
-            }
-            // Note: Tools remain loaded when collapsed to maintain ticker functionality
+            // Tools remain fully loaded and functional when collapsed
         };
         
         // Dynamic ES6 module loading
@@ -650,22 +631,36 @@
             }
         }
         
-        // Load all modules on startup to eliminate selective loading
+        // Load all modules on startup by expanding, loading, then collapsing
         async function loadAllModules() {
             const modules = ['timer', 'sounds', 'ambient', 'todos', 'memos', 'weather'];
-            const loadPromises = modules.map(async (moduleName) => {
-                try {
-                    // Create temporary container for initialization
-                    const tempContainer = document.createElement('div');
-                    await loadTool(moduleName, tempContainer);
-                    console.log(`Successfully preloaded ${moduleName} module`);
-                } catch (error) {
-                    console.error(`Failed to preload ${moduleName} module:`, error);
-                }
-            });
             
-            await Promise.all(loadPromises);
-            console.log('All modules preloaded successfully');
+            for (const moduleName of modules) {
+                try {
+                    // Get the actual UI container
+                    const content = document.getElementById(moduleName + '-content');
+                    const toggle = document.getElementById(moduleName + '-toggle');
+                    
+                    if (content && toggle) {
+                        // Temporarily expand the section
+                        content.classList.remove('collapsed');
+                        toggle.classList.remove('collapsed');
+                        
+                        // Load the tool with the real container
+                        await loadTool(moduleName, content);
+                        
+                        // Collapse it back
+                        content.classList.add('collapsed');
+                        toggle.classList.add('collapsed');
+                        
+                        console.log(`Successfully loaded ${moduleName} module`);
+                    }
+                } catch (error) {
+                    console.error(`Failed to load ${moduleName} module:`, error);
+                }
+            }
+            
+            console.log('All modules loaded successfully');
         }
         
         // Initialize when page loads

@@ -89,6 +89,22 @@ export const WINDOW_DEFAULTS = {
         center: true
     },
     
+    // Kanban board window (2-tier todo management)
+    kanban: {
+        width: 1000,
+        height: 700,
+        decorations: true,
+        transparent: false,
+        titleBarStyle: 'overlay',
+        alwaysOnTop: false,
+        resizable: true,
+        minimizable: true,
+        maximizable: true,
+        closable: true,
+        skipTaskbar: false,
+        center: true
+    },
+    
     // Default fallback configuration
     default: {
         width: 600,
@@ -175,6 +191,8 @@ export function getWindowTitle(windowType, content = '') {
             return `Memos - ${appName}`;
         case 'audio':
             return `Audio Player - ${appName}`;
+        case 'kanban':
+            return `Kanban Board - ${appName}`;
         default:
             return content ? `${content} - ${appName}` : appName;
     }
