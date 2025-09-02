@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="src/iconoir.css">
     <link rel="stylesheet" href="src/styles.css">
-    <link rel="stylesheet" href="src/timer.css">
+    <link rel="stylesheet" href="src/tools/timer.css">
 </head>
 <body>
     <div class="animated-background" id="animated-bg">
@@ -125,13 +125,18 @@
                         <!-- Weather tool content will be dynamically loaded here -->
                     </div>
                 </div>
-                <div class="collapsible-section"> </div>
-                <div class="section-header" onclick="toggleSection('Lo-Fi')">
-                        <div class="section-title"><i class="iconoir-headset"></i>Lo-Fi</div>
+                
+                <!-- Lo-Fi Music Section -->
+                <div class="collapsible-section">
+                    <div class="section-header" onclick="toggleSection('lofi')">
+                        <div class="section-title"><i class="iconoir-headset"></i> Lo-Fi Music</div>
                         <div class="section-toggle collapsed" id="lofi-toggle">›</div>
                     </div>
                     <div class="section-content collapsed" id="lofi-content">
-                        <!-- lofi tool content dynamically loaded here -->
+                        <!-- Lo-Fi tool content will be dynamically loaded here -->
+                    </div>
+                </div>
+                
                 <!-- Future tools sections will go here -->
                 
             </div>
