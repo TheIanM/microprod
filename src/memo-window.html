@@ -61,7 +61,7 @@ This dedicated memo window gives you plenty of space to write!"
     <script type="module">
         // Import and use the memos tool logic
         import { MemosTool } from './tools/memos.js';
-        import { createAnimatedBackground, getDefaultCircles } from './animated-background.js';
+        import { createAnimatedBackground, getWindowCircles } from './animated-background.js';
 
         let memoTool;
         let currentWindow;
@@ -647,7 +647,7 @@ This dedicated memo window gives you plenty of space to write!"
             // Create animated background with smaller circles for memo windows
             createAnimatedBackground({ 
                 containerId: 'animated-background',
-                circles: getSmallWindowCircles()
+                circles: getWindowCircles('memo')
             });
             initializeMemoWindow();
         });

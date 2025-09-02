@@ -239,6 +239,9 @@
                 } else if (toolName === 'weather') {
                     toolModule = await import('./src/tools/weather.js');
                     ToolClass = toolModule.WeatherTool;
+                } else if (toolName === 'lofi') {
+                    toolModule = await import('./src/tools/lofi.js');
+                    ToolClass = toolModule.LofiTool;
                 } else {
                     throw new Error(`Unknown tool: ${toolName}`);
                 }
@@ -640,7 +643,7 @@
         
         // Load all modules on startup by expanding, loading, then collapsing
         async function loadAllModules() {
-            const modules = ['timer', 'sounds', 'ambient', 'todos', 'memos', 'weather'];
+            const modules = ['timer', 'sounds', 'ambient', 'todos', 'memos', 'weather', 'lofi'];
             
             for (const moduleName of modules) {
                 try {

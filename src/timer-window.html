@@ -95,7 +95,7 @@
    
 
     <script type="module">
-        import { createAnimatedBackground, getDefaultCircles } from './animated-background.js';
+        import { createAnimatedBackground, getWindowCircles } from './animated-background.js';
 
         let currentWindow;
         let timerData = {
@@ -423,20 +423,13 @@
             }
         }
 
-        function getSmallWindowCircles() {
-            return [
-                { x: 20, y: 20, size: 40, color: 'var(--udu-green)', duration: 15 },
-                { x: 80, y: 60, size: 60, color: 'var(--candu-blue)', duration: 20 },
-                { x: 60, y: 10, size: 30, color: 'var(--perfect-pink)', duration: 18 }
-            ];
-        }
 
         // Initialize when page loads
         window.addEventListener('DOMContentLoaded', () => {
             initializeDarkMode();
             createAnimatedBackground({ 
                 containerId: 'animated-background',
-                circles: getSmallWindowCircles()
+                circles: getWindowCircles('timer')
             });
             initializeTimerWindow();
         });

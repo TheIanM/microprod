@@ -61,7 +61,7 @@
 
     <script src="../public/libs/skycons.js"></script>
     <script type="module">
-        import { createAnimatedBackground, getSmallWindowCircles } from './animated-background.js';
+        import { createAnimatedBackground, getWindowCircles } from './animated-background.js';
 
         let currentWindow;
         
@@ -442,7 +442,7 @@
             // Create animated background with smaller circles for weather window
             createAnimatedBackground({ 
                 containerId: 'animated-background',
-                circles: getSmallWindowCircles()
+                circles: getWindowCircles('weather')
             });
             
             new WeatherDetailsWindow();
