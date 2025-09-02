@@ -112,9 +112,17 @@ export class AmbientSoundsTool extends AudioToolBase {
             const audioDirectories = await core.invoke('scan_audio_directories');
             console.log('directory list:',audioDirectories);
             
-            // Build sound configurations from discovered directories
+            // Build sound configurations from discovered directories, excluding Lofi directory
             this.soundConfigs = {};
             for (const dir of audioDirectories) {
+                const lowerDirName = dir.name.toLowerCase();
+                
+                // Skip Lofi directory - it's handled by the dedicated Lofi tool
+                if (lowerDirName === 'lofi' || lowerDirName === 'lo-fi') {
+                    console.log(`🎵 Skipping Lofi directory for ambient sounds: ${dir.name}`);
+                    continue;
+                }
+                
                 const key = dir.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
                 
                 // Create display name from directory name
@@ -125,7 +133,6 @@ export class AmbientSoundsTool extends AudioToolBase {
                 
                 // Set base gain based on sound type
                 let baseGain = 0.5;
-                const lowerDirName = dir.name.toLowerCase();
                 if (lowerDirName.includes('rain') || lowerDirName.includes('storm')) {
                     baseGain = 0.6;
                 } else if (lowerDirName.includes('cafe') || lowerDirName.includes('coffee')) {

@@ -112,58 +112,34 @@ export class LofiTool extends AudioToolBase {
             const audioDirectories = await core.invoke('scan_audio_directories');
             console.log('Lo-fi directory list:', audioDirectories);
             
-            // Build music configurations from discovered directories, filtering for lo-fi relevant ones
+            // Build music configurations from discovered directories - only include "Lofi" directory
             this.musicConfigs = {};
             for (const dir of audioDirectories) {
-                const lowerDirName = dir.name.toLowerCase();
-                
-                // Only include directories that seem lo-fi related
-                const isLofiRelevant = lowerDirName.includes('lofi') || 
-                                     lowerDirName.includes('lo-fi') ||
-                                     lowerDirName.includes('chill') ||
-                                     lowerDirName.includes('jazz') ||
-                                     lowerDirName.includes('beats') ||
-                                     lowerDirName.includes('hip-hop') ||
-                                     lowerDirName.includes('study') ||
-                                     lowerDirName.includes('relax');
-                
-                if (isLofiRelevant) {
-                    const key = dir.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-                    
-                    // Create display name from directory name
-                    const displayName = dir.name
-                        .split(/[-_\s]+/)
-                        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                        .join(' ');
-                    
-                    // Set base gain - lo-fi music generally plays at moderate volume
-                    let baseGain = 0.7;
-                    if (lowerDirName.includes('chill') || lowerDirName.includes('relax')) {
-                        baseGain = 0.6;
-                    } else if (lowerDirName.includes('beats') || lowerDirName.includes('hip-hop')) {
-                        baseGain = 0.8;
-                    }
+                // Only include directories named "Lofi" (case insensitive)
+                if (dir.name.toLowerCase() === 'lofi' || dir.name.toLowerCase() === 'lo-fi') {
+                    const key = 'lofi-music';
                     
                     this.musicConfigs[key] = {
                         directory: dir.path, // Already formatted as /audio/{name}
-                        baseGain: baseGain,
-                        displayName: displayName,
+                        baseGain: 0.7,
+                        displayName: 'Lo-Fi Music',
                         fileCount: dir.file_count
                     };
+                    
+                    console.log(`✅ Found Lofi directory: ${dir.path} with ${dir.file_count} files`);
+                    break; // We only want the Lofi directory
                 }
             }
             
-            // If no lo-fi specific directories found, create a generic music category
-            if (Object.keys(this.musicConfigs).length === 0 && audioDirectories.length > 0) {
-                console.log('No specific lo-fi directories found, using first available directory');
-                const firstDir = audioDirectories[0];
-                const key = 'lofi-music';
-                
-                this.musicConfigs[key] = {
-                    directory: firstDir.path,
+            // If no Lofi directory found, log a warning
+            if (Object.keys(this.musicConfigs).length === 0) {
+                console.warn('⚠️ No "Lofi" directory found in audio directories');
+                // Create a placeholder that will show "no music found" message
+                this.musicConfigs['no-lofi'] = {
+                    directory: '',
                     baseGain: 0.7,
-                    displayName: 'Lo-Fi Music',
-                    fileCount: firstDir.file_count
+                    displayName: 'No Lofi Directory Found',
+                    fileCount: 0
                 };
             }
             
@@ -400,7 +376,7 @@ export class LofiTool extends AudioToolBase {
             if (music.availableFiles.length > 0) {
                 // Filter files by format preference (MP3 first, then others)
                 const mp3Files = music.availableFiles.filter(file => file.toLowerCase().endsWith('.mp3'));
-                const otherFiles = music.availableFiles.filter(file => !file.toLowerCase().endsWith('.mp3'));
+                const otherFiles = music.availableFiles.filter(file => !file.toLowerCase().endsWith('.mp3','.wav'));
                 
                 // Prefer MP3 files for music
                 const filesToUse = mp3Files.length > 0 ? mp3Files : otherFiles;
