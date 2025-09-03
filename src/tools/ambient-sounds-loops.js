@@ -320,7 +320,11 @@ export class AmbientSoundsTool extends AudioToolBase {
                     config: config,
                     loaded: false,
                     volume: 0,
-                    rotationTimeout: null
+                    rotationTimeout: null,
+                    loadingInBackground: false,
+                    backgroundBatchSize: 3,
+                    filesUsed: 0,
+                    pendingFiles: []
                 };
             });
             
@@ -506,7 +510,7 @@ export class AmbientSoundsTool extends AudioToolBase {
     
     // Load next batch only when needed (after 2 of 3 files have been used)
     loadNextBatchIfNeeded(sound) {
-        if (sound.loadingInBackground || sound.pendingFiles.length === 0) {
+        if (sound.loadingInBackground || !sound.pendingFiles || sound.pendingFiles.length === 0) {
             return;
         }
         

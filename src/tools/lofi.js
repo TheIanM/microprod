@@ -105,16 +105,23 @@ export class LofiTool extends AudioToolBase {
     
     // Automatically discover lo-fi music directories and build configurations
     async discoverLofiDirectories() {
+        console.log('🔍 [LofiTool] Starting directory discovery...');
         try {
             await this.waitForTauri();
+            console.log('🦀 [LofiTool] Tauri ready, scanning audio directories...');
             
             const { core } = window.__TAURI__;
             const audioDirectories = await core.invoke('scan_audio_directories');
-            console.log('Lo-fi directory list:', audioDirectories);
+            console.log('📁 [LofiTool] Audio directories found:', audioDirectories.length);
+            console.log('📋 [LofiTool] Full directory list:', audioDirectories);
             
             // Build music configurations from discovered directories - only include "Lofi" directory
             this.musicConfigs = {};
+            let foundLofiDir = false;
+            
             for (const dir of audioDirectories) {
+                console.log(`🔍 [LofiTool] Checking directory: "${dir.name}" (${dir.file_count} files)`);
+                
                 // Only include directories named "Lofi" (case insensitive)
                 if (dir.name.toLowerCase() === 'lofi' || dir.name.toLowerCase() === 'lo-fi' || dir.name.toLowerCase() === '') {
                     const key = 'lofi-music';
@@ -126,14 +133,19 @@ export class LofiTool extends AudioToolBase {
                         fileCount: dir.file_count
                     };
                     
-                    console.log(`✅ Found Lofi directory: ${dir.path} with ${dir.file_count} files`);
+                    console.log(`✅ [LofiTool] Found Lofi directory: "${dir.name}" at ${dir.path} with ${dir.file_count} files`);
+                    foundLofiDir = true;
                     break; // We only want the Lofi directory
+                } else {
+                    console.log(`⏭️ [LofiTool] Skipping directory: "${dir.name}" (not a Lofi directory)`);
                 }
             }
             
             // If no Lofi directory found, log a warning
-            if (Object.keys(this.musicConfigs).length === 0) {
-                console.warn('⚠️ No "Lofi" directory found in audio directories');
+            if (!foundLofiDir) {
+                console.warn('⚠️ [LofiTool] No "Lofi" directory found in audio directories');
+                console.log('📝 [LofiTool] Available directories were:', audioDirectories.map(d => d.name));
+                
                 // Create a placeholder that will show "no music found" message
                 this.musicConfigs['no-lofi'] = {
                     directory: '',
@@ -141,27 +153,34 @@ export class LofiTool extends AudioToolBase {
                     displayName: 'No Lofi Directory Found',
                     fileCount: 0
                 };
+                console.log('🔧 [LofiTool] Created placeholder config for missing Lofi directory');
             }
             
+            console.log('✅ [LofiTool] Directory discovery completed. Found configs:', Object.keys(this.musicConfigs));
             return true;
             
         } catch (error) {
-            console.error('Failed to discover lo-fi directories:', error);
+            console.error('❌ [LofiTool] Failed to discover lo-fi directories:', error);
             this.musicConfigs = {};
             return false;
         }
     }
     
     async scanDirectory(directory, forceRefresh = false) {
-        console.log('🔍 About to scan lo-fi directory:', directory);
+        console.log('🔍 [LofiTool] About to scan lo-fi directory:', directory);
+        console.log('🔧 [LofiTool] Force refresh:', forceRefresh);
+        
         const cacheKey = directory;
         if (!forceRefresh && this.directoryCache.has(cacheKey)) {
-            console.log('🔍 Using cached result for:', directory);
-            return this.directoryCache.get(cacheKey);
+            const cachedFiles = this.directoryCache.get(cacheKey);
+            console.log('📋 [LofiTool] Using cached result for:', directory);
+            console.log('📁 [LofiTool] Cached files count:', cachedFiles.length);
+            return cachedFiles;
         }
         
         try {
             await this.waitForTauri();
+            console.log('🦀 [LofiTool] Tauri ready, invoking scan_audio_directory...');
             
             const { core } = window.__TAURI__;
             
@@ -169,16 +188,133 @@ export class LofiTool extends AudioToolBase {
                 directoryPath: directory 
             });
             
+            console.log('📁 [LofiTool] Raw scan result:', result);
+            console.log('🎵 [LofiTool] Found files count:', result.files ? result.files.length : 0);
+            
             // Convert to simple web paths
             const fileUrls = result.files.map(file => file.path);
+            console.log('🔗 [LofiTool] Converted file URLs:', fileUrls);
+            
+            // Log file types found
+            const fileTypes = fileUrls.map(url => url.split('.').pop().toLowerCase());
+            const typeCount = fileTypes.reduce((acc, type) => {
+                acc[type] = (acc[type] || 0) + 1;
+                return acc;
+            }, {});
+            console.log('🎶 [LofiTool] File types found:', typeCount);
             
             this.directoryCache.set(cacheKey, fileUrls);
+            console.log('💾 [LofiTool] Cached results for:', directory);
             return fileUrls;
             
         } catch (error) {
-            console.error(`Failed to scan directory ${directory}:`, error);
+            console.error(`❌ [LofiTool] Failed to scan directory ${directory}:`, error);
             return [];
         }
+    }
+    
+    // Recursively scan directory and all subdirectories for audio files
+    async scanDirectoryRecursive(directory, forceRefresh = false) {
+        console.log('🌳 [LofiTool] Starting recursive scan of:', directory);
+        console.log('🔧 [LofiTool] Force refresh:', forceRefresh);
+        
+        const cacheKey = `${directory}_recursive`;
+        if (!forceRefresh && this.directoryCache.has(cacheKey)) {
+            const cachedFiles = this.directoryCache.get(cacheKey);
+            console.log('📋 [LofiTool] Using cached recursive result for:', directory);
+            console.log('📁 [LofiTool] Cached files count:', cachedFiles.length);
+            return cachedFiles;
+        }
+        
+        let allFiles = [];
+        let mainDirFiles = []; // Declare outside try block to fix scope issue
+        
+        try {
+            await this.waitForTauri();
+            const { core } = window.__TAURI__;
+            
+            // First, scan the main directory
+            console.log('📁 [LofiTool] Scanning main directory:', directory);
+            mainDirFiles = await this.scanDirectory(directory, forceRefresh);
+            console.log(`📁 [LofiTool] Found ${mainDirFiles.length} files in main directory`);
+            allFiles.push(...mainDirFiles);
+            
+            // For subdirectories, we need to use a different approach since scan_audio_directories 
+            // scans the entire audio root. Let's try using the scan_audio_directory with 
+            // individual subdirectory paths if we can discover them
+            console.log('🔍 [LofiTool] Attempting to find subdirectories using filesystem...');
+            
+            // Try alternative method: scan with recursive flag if supported
+            try {
+                const recursiveResult = await core.invoke('scan_audio_directory', { 
+                    directoryPath: directory,
+                    recursive: true  // Try with recursive flag
+                });
+                
+                console.log('📁 [LofiTool] Recursive scan result:', recursiveResult);
+                
+                if (recursiveResult && recursiveResult.files && recursiveResult.files.length > mainDirFiles.length) {
+                    // If recursive scan returned more files than the main directory scan
+                    const recursiveFiles = recursiveResult.files.map(file => file.path);
+                    console.log(`📂 [LofiTool] Recursive scan found ${recursiveFiles.length} total files`);
+                    allFiles = recursiveFiles; // Use all recursive results
+                } else {
+                    console.log('📂 [LofiTool] Recursive scan not supported or no additional files found');
+                }
+            } catch (recursiveError) {
+                console.log('⚠️ [LofiTool] Recursive scan parameter not supported:', recursiveError.message);
+                
+                // Manual subdirectory discovery approach
+                // Since we only have the main directory files, let's manually check for common subdirectory patterns
+                const commonSubdirs = ['chillhop', 'jazz', 'study', 'beats', 'ambient', 'piano', 'guitar', 'cafe', 'rain'];
+                console.log('🔍 [LofiTool] Trying manual subdirectory discovery...');
+                
+                for (const subdir of commonSubdirs) {
+                    try {
+                        const subdirPath = `${directory}/${subdir}`;
+                        console.log(`🔍 [LofiTool] Checking for subdirectory: ${subdirPath}`);
+                        
+                        const subdirFiles = await this.scanDirectory(subdirPath, forceRefresh);
+                        if (subdirFiles.length > 0) {
+                            console.log(`📂 [LofiTool] Found ${subdirFiles.length} files in ${subdir} subdirectory`);
+                            allFiles.push(...subdirFiles);
+                        }
+                    } catch (subdirError) {
+                        // Silently ignore if subdirectory doesn't exist
+                        console.log(`📂 [LofiTool] Subdirectory ${subdir} not found or inaccessible`);
+                    }
+                }
+            }
+            
+        } catch (error) {
+            console.error(`❌ [LofiTool] Failed to scan directory recursively ${directory}:`, error);
+            return mainDirFiles; // Return at least the main directory files
+        }
+        
+        // Remove duplicates (in case a file appears in multiple scans)
+        allFiles = [...new Set(allFiles)];
+        
+        console.log(`🌳 [LofiTool] Recursive scan complete for ${directory}:`);
+        console.log(`   Total files found: ${allFiles.length}`);
+        console.log(`   Files from main directory: ${mainDirFiles.length}`);
+        console.log(`   Files from subdirectories: ${allFiles.length - mainDirFiles.length}`);
+        
+        // Log which subdirectories contributed files
+        const subdirFiles = allFiles.filter(file => !mainDirFiles.includes(file));
+        if (subdirFiles.length > 0) {
+            const subdirs = [...new Set(subdirFiles.map(file => {
+                const parts = file.split('/');
+                const lofiIndex = parts.findIndex(part => part.toLowerCase() === 'lofi');
+                return lofiIndex >= 0 && lofiIndex < parts.length - 1 ? parts[lofiIndex + 1] : 'unknown';
+            }))];
+            console.log(`📂 [LofiTool] Subdirectories with files:`, subdirs);
+        }
+        
+        // Cache the results
+        this.directoryCache.set(cacheKey, allFiles);
+        console.log('💾 [LofiTool] Cached recursive results for:', directory);
+        
+        return allFiles;
     }
     
     // Select random file from available files
@@ -394,7 +530,11 @@ export class LofiTool extends AudioToolBase {
                     loaded: false,
                     volume: 0,
                     rotationTimeout: null,
-                    currentTrackName: ''
+                    currentTrackName: '',
+                    loadingInBackground: false,
+                    backgroundBatchSize: 5,
+                    filesUsed: 0,
+                    pendingFiles: []
                 };
             });
             
@@ -423,6 +563,10 @@ export class LofiTool extends AudioToolBase {
     }
     
     async createLofiMusic(config, forceRefresh = false) {
+        console.log(`🎵 [LofiTool] Creating lo-fi music for: ${config.displayName}`);
+        console.log(`📁 [LofiTool] Directory: ${config.directory}`);
+        console.log(`🔧 [LofiTool] Force refresh: ${forceRefresh}`);
+        
         const music = {
             audioElements: [],
             availableFiles: [],
@@ -440,42 +584,63 @@ export class LofiTool extends AudioToolBase {
         };
         
         try {
-            music.availableFiles = await this.scanDirectory(config.directory, forceRefresh);
+            console.log(`🔍 [LofiTool] Scanning directory and subdirectories for ${config.displayName}...`);
+            music.availableFiles = await this.scanDirectoryRecursive(config.directory, forceRefresh);
+            console.log(`📁 [LofiTool] Found ${music.availableFiles.length} total files for ${config.displayName}`);
             
             if (music.availableFiles.length > 0) {
                 // Filter files by format preference (MP3 first, then others)
                 const mp3Files = music.availableFiles.filter(file => file.toLowerCase().endsWith('.mp3'));
                 const otherFiles = music.availableFiles.filter(file => !file.toLowerCase().endsWith('.mp3','.wav'));
                 
+                console.log(`🎶 [LofiTool] File breakdown for ${config.displayName}:`);
+                console.log(`   MP3 files: ${mp3Files.length}`);
+                console.log(`   Other files: ${otherFiles.length}`);
+                
                 // Prefer MP3 files for music
                 const filesToUse = mp3Files.length > 0 ? mp3Files : otherFiles;
                 
-                console.log(`[LofiTool] Found ${filesToUse.length} music files for ${config.displayName}, loading first track`);
+                console.log(`🎯 [LofiTool] Using ${filesToUse.length} ${mp3Files.length > 0 ? 'MP3' : 'other'} files for ${config.displayName}`);
+                console.log(`🎵 [LofiTool] Files to use:`, filesToUse.map(f => f.split('/').pop()));
                 
                 // Load only the FIRST file immediately for instant playback
                 if (filesToUse.length > 0) {
                     const firstFile = filesToUse[0];
+                    console.log(`⚡ [LofiTool] Loading first track for instant playback: ${firstFile.split('/').pop()}`);
+                    
                     const firstElement = await this.loadSingleAudioFile(firstFile);
                     
                     if (firstElement) {
                         music.audioElements = [firstElement];
                         music.loaded = true;
                         music.currentTrackName = this.extractTrackName(firstFile);
-                        console.log(`✅ ${config.displayName}: First track loaded, ready to play instantly!`);
+                        console.log(`✅ [LofiTool] ${config.displayName}: First track loaded successfully!`);
+                        console.log(`🎼 [LofiTool] Track name: "${music.currentTrackName}"`);
+                        console.log(`🔊 [LofiTool] Audio method: ${firstElement.useWebAudio ? 'Web Audio API' : 'HTML5 Audio'}`);
                         
                         // Queue remaining files for gradual loading
                         if (filesToUse.length > 1) {
                             music.pendingFiles = filesToUse.slice(1);
+                            console.log(`⏳ [LofiTool] Queued ${music.pendingFiles.length} additional tracks for background loading`);
                             this.loadNextBatchIfNeeded(music);
+                        } else {
+                            console.log(`ℹ️ [LofiTool] Only one track available, no background loading needed`);
                         }
                     } else {
-                        console.warn(`❌ Failed to load first track for ${config.displayName}`);
+                        console.warn(`❌ [LofiTool] Failed to load first track for ${config.displayName}: ${firstFile}`);
                     }
                 }
+            } else {
+                console.warn(`⚠️ [LofiTool] No files found in directory for ${config.displayName}`);
             }
         } catch (error) {
-            console.warn(`Failed to load music for ${config.displayName}:`, error);
+            console.error(`❌ [LofiTool] Failed to load music for ${config.displayName}:`, error);
         }
+        
+        console.log(`📊 [LofiTool] Music creation complete for ${config.displayName}:`);
+        console.log(`   Loaded: ${music.loaded}`);
+        console.log(`   Audio elements: ${music.audioElements.length}`);
+        console.log(`   Pending files: ${music.pendingFiles.length}`);
         
         return music;
     }
@@ -594,14 +759,24 @@ export class LofiTool extends AudioToolBase {
     
     // Load next batch when needed
     loadNextBatchIfNeeded(music) {
-        if (music.loadingInBackground || music.pendingFiles.length === 0) {
+        console.log(`🔄 [LofiTool] Checking if next batch needed for ${music.config.displayName}`);
+        console.log(`   Loading in background: ${music.loadingInBackground}`);
+        console.log(`   Pending files: ${music.pendingFiles ? music.pendingFiles.length : 'undefined'}`);
+        console.log(`   Audio elements: ${music.audioElements.length}`);
+        console.log(`   Files used: ${music.filesUsed}`);
+        
+        if (music.loadingInBackground || !music.pendingFiles || music.pendingFiles.length === 0) {
+            console.log(`⏸️ [LofiTool] Skipping batch load: loading=${music.loadingInBackground}, pendingFiles=${music.pendingFiles?.length || 0}`);
             return;
         }
         
         // Load more aggressively for music - when we have fewer than 5 files or 3/5 have been used
         const shouldLoadMore = music.audioElements.length < 5 || music.filesUsed >= 3;
         
+        console.log(`📊 [LofiTool] Load more check: audioElements=${music.audioElements.length}<5 OR filesUsed=${music.filesUsed}>=3 = ${shouldLoadMore}`);
+        
         if (!shouldLoadMore) {
+            console.log(`⏸️ [LofiTool] No need to load more files yet`);
             return;
         }
         
@@ -609,26 +784,48 @@ export class LofiTool extends AudioToolBase {
         const batchSize = Math.min(music.backgroundBatchSize, music.pendingFiles.length);
         const currentBatch = music.pendingFiles.splice(0, batchSize);
         
-        console.log(`🔄 Loading next music batch for ${music.config.displayName}: ${batchSize} files`);
+        console.log(`🚀 [LofiTool] Loading next music batch for ${music.config.displayName}:`);
+        console.log(`   Batch size: ${batchSize} files`);
+        console.log(`   Files to load:`, currentBatch.map(f => f.split('/').pop()));
+        console.log(`   Remaining in queue: ${music.pendingFiles.length}`);
         
         this.loadBatch(music, currentBatch);
     }
     
     // Load a specific batch of files (reuse from ambient-sounds)
     async loadBatch(music, filesToLoad) {
-        const batchPromises = filesToLoad.map(file => this.loadSingleAudioFile(file));
+        console.log(`⚡ [LofiTool] Starting batch load for ${music.config.displayName}`);
+        console.log(`📁 [LofiTool] Loading ${filesToLoad.length} files in parallel...`);
+        
+        const batchPromises = filesToLoad.map(async (file, index) => {
+            console.log(`🔄 [LofiTool] Loading file ${index + 1}/${filesToLoad.length}: ${file.split('/').pop()}`);
+            return await this.loadSingleAudioFile(file);
+        });
+        
         const results = await Promise.all(batchPromises);
         
         const loadedElements = results.filter(result => result !== null);
+        const failedCount = results.length - loadedElements.length;
+        
         music.audioElements.push(...loadedElements);
         
-        console.log(`✅ Music batch loaded: ${loadedElements.length}/${filesToLoad.length} tracks. Total: ${music.audioElements.length} tracks available`);
+        console.log(`✅ [LofiTool] Batch load complete for ${music.config.displayName}:`);
+        console.log(`   Successfully loaded: ${loadedElements.length}/${filesToLoad.length} tracks`);
+        if (failedCount > 0) {
+            console.log(`   Failed to load: ${failedCount} tracks`);
+        }
+        console.log(`   Total tracks available: ${music.audioElements.length}`);
+        console.log(`   Loaded track names:`, loadedElements.map(e => e.file.split('/').pop()));
         
         music.loadingInBackground = false;
         music.filesUsed = Math.max(0, music.filesUsed - 3);
         
+        console.log(`📊 [LofiTool] Updated stats: filesUsed=${music.filesUsed}, pendingFiles=${music.pendingFiles.length}`);
+        
         if (music.pendingFiles.length === 0) {
-            console.log(`🎉 All tracks loaded for ${music.config.displayName}: ${music.audioElements.length} total tracks`);
+            console.log(`🎉 [LofiTool] All tracks loaded for ${music.config.displayName}: ${music.audioElements.length} total tracks`);
+        } else {
+            console.log(`⏳ [LofiTool] ${music.pendingFiles.length} tracks remaining in queue`);
         }
     }
     
