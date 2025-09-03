@@ -27,14 +27,19 @@
     {
       "identifier": "http:default",
       "allow": [
-        { "url": "https://weather.gc.ca/*" },
-        { "url": "https://dd.weather.gc.ca/*" }
+        {
+          "url": "https://weather.gc.ca/*"
+        },
+        {
+          "url": "https://dd.weather.gc.ca/*"
+        }
       ]
     },
     "http:allow-fetch",
     "http:allow-fetch-cancel",
     "http:allow-fetch-read-body",
-    "http:allow-fetch-send"
+    "http:allow-fetch-send",
+    "clipboard-manager:default"
   ],
   "scopes": [
     {

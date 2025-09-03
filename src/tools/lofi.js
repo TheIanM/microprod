@@ -116,12 +116,12 @@ export class LofiTool extends AudioToolBase {
             this.musicConfigs = {};
             for (const dir of audioDirectories) {
                 // Only include directories named "Lofi" (case insensitive)
-                if (dir.name.toLowerCase() === 'lofi' || dir.name.toLowerCase() === 'lo-fi') {
+                if (dir.name.toLowerCase() === 'lofi' || dir.name.toLowerCase() === 'lo-fi' || dir.name.toLowerCase() === '') {
                     const key = 'lofi-music';
                     
                     this.musicConfigs[key] = {
                         directory: dir.path, // Already formatted as /audio/{name}
-                        baseGain: 0.7,
+                        baseGain: 0.9,
                         displayName: 'Volume',
                         fileCount: dir.file_count
                     };
@@ -235,6 +235,19 @@ export class LofiTool extends AudioToolBase {
                 <div class="album-icon" id="album-icon">
                     <i class="iconoir-album-open"></i>
                 </div>
+<!-- Now Playing - Below Controls -->
+                <div class="now-playing" id="now-playing">
+                    ♪ Now Playing: Loading...
+                </div>
+            </div>
+            
+            <div class="music-controls">
+                ${musicItems}
+            </div>
+            
+            <div class="audio-status" id="audio-status">
+                Loading lo-fi music files...
+            </div>
                 
                 <!-- Playback Controls - Always Visible -->
                 <div class="playback-controls" id="playback-controls">
@@ -251,19 +264,7 @@ export class LofiTool extends AudioToolBase {
                     </button>
                 </div>
                 
-                <!-- Now Playing - Below Controls -->
-                <div class="now-playing" id="now-playing">
-                    ♪ Now Playing: Loading...
-                </div>
-            </div>
-            
-            <div class="music-controls">
-                ${musicItems}
-            </div>
-            
-            <div class="audio-status" id="audio-status">
-                Loading lo-fi music files...
-            </div>
+                
             
             ${this.getSliderStyles()}
         `;
