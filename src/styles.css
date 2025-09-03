@@ -421,12 +421,13 @@ button:hover {
 .section-toggle {
     font-size: 18px;
     font-weight: bold;
-    color: var(--primary);
+    color: var(--not-white);
     transition: transform 0.2s ease;
+    transform: rotate(45deg);
 }
 
 .section-toggle.collapsed {
-    transform: rotate(-90deg);
+    transform: rotate(90deg);
 }
 
 .section-content {

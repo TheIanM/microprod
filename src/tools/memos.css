@@ -1,10 +1,5 @@
 /* Memos Tool Specific Styles */
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
 
         /* CSS variables now inherit from main styles.css */
 

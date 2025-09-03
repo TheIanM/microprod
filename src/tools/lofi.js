@@ -226,115 +226,46 @@ export class LofiTool extends AudioToolBase {
             `;
         }
 
+        // Add CSS class to container for scoped styling
+        this.container.className = 'lofi-tool';
+        
         this.container.innerHTML = `
-            <div class="lofi-header" style="
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                margin-bottom: 20px;
-            ">
+            <div class="lofi-header">
                 <!-- Album Icon - shown when playing -->
-                <div class="album-icon" id="album-icon" style="
-                    font-size: 32px;
-                    color: var(--accent-color, #4ecf9d);
-                    margin-bottom: 8px;
-                    display: none;
-                    animation: pulse 2s ease-in-out infinite;
-                ">
+                <div class="album-icon" id="album-icon">
                     <i class="iconoir-album-open"></i>
                 </div>
                 
-                <!-- Playback Controls -->
-                <div class="playback-controls" id="playback-controls" style="
-                    display: none;
-                    align-items: center;
-                    gap: 15px;
-                    margin-bottom: 15px;
-                ">
-                    <button class="control-btn" id="skip-back" style="
-                        background: none;
-                        border: none;
-                        color: var(--text-primary);
-                        font-size: 20px;
-                        cursor: pointer;
-                        padding: 8px;
-                        border-radius: 50%;
-                        transition: all 0.2s;
-                    " title="Previous Track">
+                <!-- Playback Controls - Always Visible -->
+                <div class="playback-controls" id="playback-controls">
+                    <button class="control-btn" id="skip-back" title="Previous Track">
                         <i class="iconoir-skip-prev"></i>
                     </button>
                     
-                    <button class="control-btn play-pause-btn" id="play-pause" style="
-                        background: var(--accent-color, #4ecf9d);
-                        border: none;
-                        color: white;
-                        font-size: 24px;
-                        cursor: pointer;
-                        padding: 12px;
-                        border-radius: 50%;
-                        transition: all 0.2s;
-                        width: 48px;
-                        height: 48px;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                    " title="Play/Pause">
-                        <i class="iconoir-pause" id="play-pause-icon"></i>
+                    <button class="control-btn play-pause-btn" id="play-pause" title="Play/Pause">
+                        <i class="iconoir-play" id="play-pause-icon"></i>
                     </button>
                     
-                    <button class="control-btn" id="skip-forward" style="
-                        background: none;
-                        border: none;
-                        color: var(--text-primary);
-                        font-size: 20px;
-                        cursor: pointer;
-                        padding: 8px;
-                        border-radius: 50%;
-                        transition: all 0.2s;
-                    " title="Next Track">
+                    <button class="control-btn" id="skip-forward" title="Next Track">
                         <i class="iconoir-skip-next"></i>
                     </button>
                 </div>
+                
+                <!-- Now Playing - Below Controls -->
+                <div class="now-playing" id="now-playing">
+                    ♪ Now Playing: Loading...
+                </div>
             </div>
             
-            <div class="music-controls" style="
-                display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-                gap: 20px;
-                margin: 10px 0 20px 0;
-                padding: 10px 0;
-            ">
+            <div class="music-controls">
                 ${musicItems}
             </div>
             
-            <div class="now-playing" style="
-                text-align: center;
-                padding: 12px;
-                margin: 10px 0;
-                background: var(--background-secondary);
-                border-radius: 8px;
-                font-size: 12px;
-                color: var(--text-secondary);
-                display: none;
-            " id="now-playing">
-                ♪ Now Playing: Loading...
-            </div>
-            
-            <div class="audio-status" style="
-                text-align: center;
-                padding: 10px;
-                margin: 10px 0;
-                background: #f8f9fa;
-                border-radius: 8px;
-                font-size: 12px;
-                color: #666;
-                display: none;
-            " id="audio-status">
+            <div class="audio-status" id="audio-status">
                 Loading lo-fi music files...
             </div>
             
             ${this.getSliderStyles()}
-            ${this.getControlStyles()}
         `;
     }
     
@@ -958,35 +889,28 @@ export class LofiTool extends AudioToolBase {
     updateNowPlaying(trackName) {
         const nowPlayingEl = this.container.querySelector('#now-playing');
         const albumIcon = this.container.querySelector('#album-icon');
-        const playbackControls = this.container.querySelector('#playback-controls');
         
         if (trackName) {
             // Show now playing
             if (nowPlayingEl) {
                 nowPlayingEl.textContent = `♪ Now Playing: ${trackName}`;
-                nowPlayingEl.style.display = 'block';
+                nowPlayingEl.classList.add('show');
             }
             
-            // Show album icon and controls
+            // Show album icon (controls are always visible now)
             if (albumIcon) {
-                albumIcon.style.display = 'block';
-            }
-            if (playbackControls) {
-                playbackControls.style.display = 'flex';
+                albumIcon.classList.add('show');
             }
             
             // Update play/pause button to show pause icon
             this.updatePlayPauseIcon(true);
         } else {
-            // Hide everything when not playing
+            // Hide elements when not playing
             if (nowPlayingEl) {
-                nowPlayingEl.style.display = 'none';
+                nowPlayingEl.classList.remove('show');
             }
             if (albumIcon) {
-                albumIcon.style.display = 'none';
-            }
-            if (playbackControls) {
-                playbackControls.style.display = 'none';
+                albumIcon.classList.remove('show');
             }
         }
     }

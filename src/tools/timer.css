@@ -246,9 +246,4 @@
         }
 
 
-.timer-preset-btn.active {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
     </style>
