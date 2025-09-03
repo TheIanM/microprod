@@ -122,7 +122,7 @@ export class LofiTool extends AudioToolBase {
                     this.musicConfigs[key] = {
                         directory: dir.path, // Already formatted as /audio/{name}
                         baseGain: 0.7,
-                        displayName: 'Lo-Fi Music',
+                        displayName: 'Volume',
                         fileCount: dir.file_count
                     };
                     
@@ -242,7 +242,7 @@ export class LofiTool extends AudioToolBase {
                         <i class="iconoir-skip-prev"></i>
                     </button>
                     
-                    <button class="control-btn play-pause-btn" id="play-pause" title="Play/Pause">
+                    <button class="control-btn" id="play-pause" title="Play/Pause">
                         <i class="iconoir-play" id="play-pause-icon"></i>
                     </button>
                     

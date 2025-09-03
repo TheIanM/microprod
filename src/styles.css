@@ -419,9 +419,9 @@ button:hover {
 }
 
 .section-toggle {
-    font-size: 18px;
-    font-weight: bold;
-    color: var(--not-white);
+    font-size: 20px;
+    font-weight: extra-bold;
+    color: var(--not-black);
     transition: transform 0.2s ease;
     transform: rotate(45deg);
 }
