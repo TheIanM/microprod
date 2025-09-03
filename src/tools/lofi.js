@@ -371,10 +371,25 @@ export class LofiTool extends AudioToolBase {
                 <div class="album-icon" id="album-icon">
                     <i class="iconoir-album-open"></i>
                 </div>
-<!-- Now Playing - Below Controls -->
+                <!-- Now Playing -->
                 <div class="now-playing" id="now-playing">
                     ♪ Now Playing: Loading...
                 </div>
+            </div>
+            
+            <!-- Playback Controls - Always Visible and Centered -->
+            <div class="playback-controls" id="playback-controls">
+                <button class="control-btn" id="skip-back" title="Previous Track">
+                    <i class="iconoir-skip-prev"></i>
+                </button>
+                
+                <button class="control-btn" id="play-pause" title="Play/Pause">
+                    <i class="iconoir-play" id="play-pause-icon"></i>
+                </button>
+                
+                <button class="control-btn" id="skip-forward" title="Next Track">
+                    <i class="iconoir-skip-next"></i>
+                </button>
             </div>
             
             <div class="music-controls">
@@ -384,23 +399,6 @@ export class LofiTool extends AudioToolBase {
             <div class="audio-status" id="audio-status">
                 Loading lo-fi music files...
             </div>
-                
-                <!-- Playback Controls - Always Visible -->
-                <div class="playback-controls" id="playback-controls">
-                    <button class="control-btn" id="skip-back" title="Previous Track">
-                        <i class="iconoir-skip-prev"></i>
-                    </button>
-                    
-                    <button class="control-btn" id="play-pause" title="Play/Pause">
-                        <i class="iconoir-play" id="play-pause-icon"></i>
-                    </button>
-                    
-                    <button class="control-btn" id="skip-forward" title="Next Track">
-                        <i class="iconoir-skip-next"></i>
-                    </button>
-                </div>
-                
-                
             
             ${this.getSliderStyles()}
         `;
@@ -417,7 +415,7 @@ export class LofiTool extends AudioToolBase {
         const playPauseBtn = this.container.querySelector('#play-pause');
         if (playPauseBtn) {
             playPauseBtn.addEventListener('click', () => {
-                this.togglePlayPause();
+                this.togglePlayPauseWithVolume();
             });
         }
         
@@ -1125,19 +1123,65 @@ export class LofiTool extends AudioToolBase {
         }
     }
     
-    // Toggle play/pause
-    togglePlayPause() {
-        // Find the active music (first one that's playing)
+    // Toggle play/pause with automatic volume setting
+    togglePlayPauseWithVolume() {
+        console.log('🎵 [LofiTool] Play/Pause button clicked');
+        
+        // Find the active music (first one that's playing or has volume > 0)
+        let foundActiveMusic = false;
+        
         for (const [soundName, music] of Object.entries(this.sounds)) {
             if (music.volume > 0) {
+                console.log(`🎵 [LofiTool] Found active music: ${soundName} (volume: ${music.volume})`);
                 if (music.isPlaying) {
+                    console.log(`⏸️ [LofiTool] Pausing ${soundName}`);
                     this.pauseSound(soundName);
                 } else {
+                    console.log(`▶️ [LofiTool] Resuming ${soundName}`);
                     this.resumeSound(soundName);
                 }
+                foundActiveMusic = true;
                 break;
             }
         }
+        
+        // If no active music found, start the first available music with default volume
+        if (!foundActiveMusic) {
+            console.log('🎵 [LofiTool] No active music found, starting with default volume');
+            const firstMusicKey = Object.keys(this.sounds)[0];
+            
+            if (firstMusicKey) {
+                const defaultVolume = 33; // change value here to change default
+                console.log(`▶️ [LofiTool] Starting ${firstMusicKey} at ${defaultVolume}% volume`);
+                
+                // Set volume which will automatically start the music
+                this.updateMusicVolume(firstMusicKey, defaultVolume).then(() => {
+                    // Update the volume slider to reflect the new volume
+                    this.updateVolumeSlider(firstMusicKey, defaultVolume);
+                }).catch(error => {
+                    console.error('❌ [LofiTool] Failed to start music:', error);
+                });
+            } else {
+                console.warn('⚠️ [LofiTool] No music available to play');
+            }
+        }
+    }
+    
+    // Update volume slider to match the set volume
+    updateVolumeSlider(soundName, volume) {
+        const slider = this.container.querySelector(`input[data-sound="${soundName}"]`);
+        if (slider) {
+            slider.value = volume;
+            console.log(`🎚️ [LofiTool] Updated slider for ${soundName} to ${volume}%`);
+            
+            // Update slider scale visual feedback
+            this.updateSliderScale(soundName, volume);
+        }
+    }
+    
+    // Legacy toggle play/pause method (keeping for compatibility)
+    togglePlayPause() {
+        this.togglePlayPauseWithVolume();
     }
     
     // Pause sound (without stopping completely)
