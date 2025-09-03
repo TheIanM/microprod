@@ -227,7 +227,7 @@ export class LofiTool extends AudioToolBase {
         }
 
         // Add CSS class to container for scoped styling
-        this.container.className = 'lofi-tool';
+        this.container.classList.add('lofi-tool');
         
         this.container.innerHTML = `
             <div class="lofi-header">
