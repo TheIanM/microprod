@@ -47,9 +47,9 @@
                         <div class="priority-column-content" id="high-priority-content">
                             <!-- High priority lists will be rendered here -->
                         </div>
-                        <div class="add-list-button" data-priority="high">
+                        <button class="tool-btn secondary" onclick="createNewList('high')">
                             <i class="iconoir-plus"></i> Add High Priority List
-                        </div>
+                        </button>
                     </div>
 
                     <!-- Medium Priority Column -->
@@ -64,9 +64,9 @@
                         <div class="priority-column-content" id="medium-priority-content">
                             <!-- Medium priority lists will be rendered here -->
                         </div>
-                        <div class="add-list-button" data-priority="medium">
+                        <button class="tool-btn secondary" onclick="createNewList('medium')">
                             <i class="iconoir-plus"></i> Add Medium Priority List
-                        </div>
+                        </button>
                     </div>
 
                     <!-- Low Priority Column -->
@@ -81,9 +81,9 @@
                         <div class="priority-column-content" id="low-priority-content">
                             <!-- Low priority lists will be rendered here -->
                         </div>
-                        <div class="add-list-button" data-priority="low">
+                        <button class="tool-btn secondary" onclick="createNewList('low')">
                             <i class="iconoir-plus"></i> Add Low Priority List
-                        </div>
+                        </button>
                     </div>
                 </div>
 
@@ -97,9 +97,9 @@
                         <div class="status-column-content" id="todo-status-content">
                             <!-- Todo items will be rendered here -->
                         </div>
-                        <div class="add-item-button" onclick="openAddItemModalWithStatus('todo')">
+                        <button class="tool-btn" onclick="openAddItemModalWithStatus('todo')">
                             <i class="iconoir-plus"></i> Add Item
-                        </div>
+                        </button>
                     </div>
 
                     <div class="status-column" data-status="inprogress">
@@ -109,9 +109,9 @@
                         <div class="status-column-content" id="inprogress-status-content">
                             <!-- In progress items will be rendered here -->
                         </div>
-                        <div class="add-item-button" onclick="openAddItemModalWithStatus('inprogress')">
+                        <button class="tool-btn" onclick="openAddItemModalWithStatus('inprogress')">
                             <i class="iconoir-plus"></i> Add Item
-                        </div>
+                        </button>
                     </div>
 
                     <div class="status-column" data-status="done">
@@ -121,9 +121,9 @@
                         <div class="status-column-content" id="done-status-content">
                             <!-- Completed items will be rendered here -->
                         </div>
-                        <div class="add-item-button" onclick="openAddItemModalWithStatus('done')">
+                        <button class="tool-btn" onclick="openAddItemModalWithStatus('done')">
                             <i class="iconoir-plus"></i> Add Item
-                        </div>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -240,6 +240,21 @@
                 updateStatus('Kanban board ready');
 
                 console.log('✅ Kanban window initialization complete');
+                
+                // Test function availability
+                console.log('🧪 Testing function availability:');
+                console.log('  - window.createNewList:', typeof window.createNewList);
+                console.log('  - window.deleteList:', typeof window.deleteList);
+                
+                // Add test button for debugging
+                const testBtn = document.createElement('button');
+                testBtn.textContent = 'TEST createNewList';
+                testBtn.onclick = () => {
+                    console.log('🧪 Test button clicked');
+                    window.createNewList('high');
+                };
+                testBtn.style.cssText = 'position: fixed; top: 10px; right: 10px; z-index: 9999; background: red; color: white; padding: 10px; display: none;';
+                document.body.appendChild(testBtn);
 
             } catch (error) {
                 console.error('Error initializing kanban window:', error);
@@ -336,13 +351,8 @@
         }
 
         function bindEvents() {
-            // Add list buttons
-            document.querySelectorAll('.add-list-button').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const priority = e.currentTarget.dataset.priority;
-                    createNewList(priority);
-                });
-            });
+            // Event binding for dynamically created elements can go here
+            // Add list and add item buttons now use inline onclick handlers
         }
 
         function renderCurrentView() {
@@ -387,7 +397,14 @@
                 
                 return `
                     <div class="list-card" data-list-id="${list.id}">
-                        <div class="list-card-title">${list.name}</div>
+                        <div class="list-card-header">
+                            <div class="list-card-title">${list.name}</div>
+                            <div class="list-card-actions">
+                                <button class="list-action-btn" onclick="deleteList('${list.id}')" title="Delete List">
+                                    <i class="iconoir-trash"></i>
+                                </button>
+                            </div>
+                        </div>
                         <div class="list-card-meta">
                             <div class="list-card-progress">${completedItems}/${totalItems} • ${progressPercent}%</div>
                             ${list.dueDate ? `<div class="list-card-due">${formatDate(list.dueDate)}</div>` : ''}
@@ -398,7 +415,11 @@
             
             // Bind list card clicks
             container.querySelectorAll('.list-card').forEach(card => {
-                card.addEventListener('click', () => {
+                card.addEventListener('click', (e) => {
+                    // Don't open list if clicking on action buttons
+                    if (e.target.closest('.list-action-btn')) {
+                        return;
+                    }
                     const listId = card.dataset.listId;
                     openListItems(listId);
                 });
@@ -461,12 +482,22 @@
 
         // Modal Functions
         function createNewList(priority) {
-            // Open modal and set the priority
-            document.getElementById('list-priority').value = priority;
-            document.getElementById('modal-title').textContent = `Add New ${priority.charAt(0).toUpperCase() + priority.slice(1)} Priority List`;
-            document.getElementById('add-list-modal').style.display = 'flex';
-            document.getElementById('list-name').focus();
+            console.log('createNewList called with priority:', priority);
+            try {
+                // Open modal and set the priority
+                document.getElementById('list-priority').value = priority;
+                document.getElementById('modal-title').textContent = `Add New ${priority.charAt(0).toUpperCase() + priority.slice(1)} Priority List`;
+                document.getElementById('add-list-modal').style.display = 'flex';
+                document.getElementById('list-name').focus();
+                console.log('Modal should be visible now');
+            } catch (error) {
+                console.error('Error in createNewList:', error);
+            }
         }
+        
+        // Make createNewList global immediately
+        window.createNewList = createNewList;
+        console.log('🌐 createNewList function assigned to window:', typeof window.createNewList);
 
         function closeAddListModal() {
             document.getElementById('add-list-modal').style.display = 'none';
@@ -474,6 +505,9 @@
             document.getElementById('list-name').value = '';
             document.getElementById('list-due-date').value = '';
         }
+        
+        // Make closeAddListModal global immediately
+        window.closeAddListModal = closeAddListModal;
 
         function createListFromModal() {
             const name = document.getElementById('list-name').value.trim();
@@ -501,6 +535,9 @@
             updateStatus(`Created new ${priority} priority list: ${name}`);
             closeAddListModal();
         }
+        
+        // Make createListFromModal global immediately  
+        window.createListFromModal = createListFromModal;
 
         function openAddItemModal(listId) {
             kanbanData.activeListId = listId;
@@ -517,6 +554,9 @@
             document.getElementById('item-status').value = 'todo';
             document.getElementById('item-due-date').value = '';
         }
+        
+        // Make closeAddItemModal global immediately
+        window.closeAddItemModal = closeAddItemModal;
 
         function createItemFromModal() {
             const text = document.getElementById('item-text').value.trim();
@@ -551,6 +591,9 @@
             updateStatus(`Added item to "${list.name}"`);
             closeAddItemModal();
         }
+        
+        // Make createItemFromModal global immediately
+        window.createItemFromModal = createItemFromModal;
 
         function openAddItemModalWithStatus(status) {
             if (!kanbanData.activeListId || !kanbanData.lists[kanbanData.activeListId]) {
@@ -564,6 +607,9 @@
             document.getElementById('add-item-modal').style.display = 'flex';
             document.getElementById('item-text').focus();
         }
+        
+        // Make openAddItemModalWithStatus global immediately
+        window.openAddItemModalWithStatus = openAddItemModalWithStatus;
 
         // Keyboard event handlers
         function handleKeyPress(event) {
@@ -600,12 +646,7 @@
 
         document.addEventListener('click', handleModalClick);
 
-        // Make modal functions global for onclick handlers
-        window.closeAddListModal = closeAddListModal;
-        window.createListFromModal = createListFromModal;
-        window.closeAddItemModal = closeAddItemModal;
-        window.createItemFromModal = createItemFromModal;
-        window.openAddItemModalWithStatus = openAddItemModalWithStatus;
+        // Modal functions are now made global immediately after each function definition
 
         function openListItems(listId) {
             kanbanData.activeListId = listId;
@@ -625,6 +666,44 @@
 
         // Make showPriorityView global for breadcrumb
         window.showPriorityView = showPriorityView;
+        
+        function deleteList(listId) {
+            console.log('🗑️ deleteList called with listId:', listId);
+            console.log('📋 Current kanbanData.lists:', kanbanData.lists);
+            
+            const list = kanbanData.lists[listId];
+            console.log('📋 Found list:', list);
+            
+            if (!list) {
+                console.error('❌ List not found with ID:', listId);
+                return;
+            }
+            
+            const confirmDelete = confirm(`Are you sure you want to delete the list "${list.name}"? This will also delete all items in the list. This action cannot be undone.`);
+            console.log('✅ User confirmed deletion:', confirmDelete);
+            
+            if (!confirmDelete) return;
+            
+            // Remove the list from data
+            delete kanbanData.lists[listId];
+            console.log('🗑️ Deleted list from data');
+            
+            // Save changes
+            saveKanbanData();
+            console.log('💾 Saved kanban data');
+            
+            // Re-render current view
+            renderCurrentView();
+            console.log('🔄 Re-rendered view');
+            
+            // Update status
+            updateStatus(`Deleted list: ${list.name}`);
+            console.log('✅ Delete operation completed');
+        }
+        
+        // Make deleteList global immediately
+        window.deleteList = deleteList;
+        console.log('🌐 deleteList function assigned to window:', typeof window.deleteList);
 
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);

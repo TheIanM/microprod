@@ -5,6 +5,8 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 1;
         }
         
         .kanban-window-header {
@@ -132,11 +134,46 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
         
+        .list-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 8px;
+        }
+        
         .list-card-title {
             font-size: 16px;
             font-weight: 600;
             color: var(--text-primary);
-            margin-bottom: 8px;
+            flex: 1;
+        }
+        
+        .list-card-actions {
+            display: flex;
+            gap: 4px;
+            opacity: 1;
+            transition: opacity 0.2s ease;
+        }
+        
+        .list-action-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+        
+        .list-action-btn:hover {
+            background: var(--danger);
+            color: white;
+        }
+        
+        /* Ensure delete button icons are clickable */
+        .list-action-btn * {
+            pointer-events: none;
         }
         
         .list-card-meta {
@@ -157,23 +194,20 @@
             border-radius: 4px;
         }
         
-        /* Add List Button */
-        .add-list-button {
-            background: var(--background);
-            border: 2px dashed var(--border-color);
-            border-radius: 8px;
-            padding: 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: var(--text-secondary);
-            font-weight: 500;
+        /* Add Button Spacing */
+        .priority-column .tool-btn {
+            width: 100%;
+            margin-top: 8px;
         }
-        
-        .add-list-button:hover {
-            border-color: var(--text-primary);
-            color: var(--text-primary);
-            background: var(--background-secondary);
+
+        .status-column .tool-btn {
+            width: 100%;
+            margin-top: 8px;
+        }
+
+        /* Ensure buttons are fully clickable */
+        .tool-btn * {
+            pointer-events: none;
         }
         
         /* Breadcrumb Navigation */
