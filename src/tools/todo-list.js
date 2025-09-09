@@ -11,7 +11,9 @@ export class TodoListTool extends ToolBase {
         super(container);
         this.lists = {};
         this.activeListId = null;
-        this.currentView = 'lists'; // 'lists' or 'items'
+        this.currentView = 'priority-cycling'; // New priority cycling view
+        this.currentPriorityIndex = 0; // Track which priority level we're showing
+        this.priorityLevels = ['high', 'medium', 'low'];
     }
     
     async render() {
@@ -49,6 +51,111 @@ export class TodoListTool extends ToolBase {
             </div>
             
             <style>
+                /* Priority Badge Styles */
+                .priority-badge {
+                    padding: 4px 8px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    margin-right: 8px;
+                }
+                
+                .priority-badge.high {
+                    background: var(--danger);
+                    color: white;
+                }
+                
+                .priority-badge.medium {
+                    background: var(--warning);
+                    color: white;
+                }
+                
+                .priority-badge.low {
+                    background: var(--success);
+                    color: white;
+                }
+                
+                /* Priority List Card Styles */
+                .priority-list-card {
+                    background: rgba(255,255,255,0.05);
+                    border: 2px solid var(--border-color);
+                    border-radius: 8px;
+                    margin-bottom: 12px;
+                    padding: 12px;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                
+                .priority-list-card:hover {
+                    border-color: var(--text-primary);
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                }
+                
+                .priority-list-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 8px;
+                }
+                
+                .priority-list-title {
+                    font-weight: 600;
+                    font-size: 14px;
+                    color: var(--text-primary);
+                }
+                
+                .priority-list-progress {
+                    font-size: 12px;
+                    color: var(--text-secondary);
+                    margin-bottom: 8px;
+                }
+                
+                .priority-list-items {
+                    margin-top: 8px;
+                }
+                
+                .compact-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 4px 0;
+                    font-size: 13px;
+                    color: var(--text-primary);
+                    cursor: pointer;
+                }
+                
+                .compact-item input[type="checkbox"] {
+                    width: 16px;
+                    height: 16px;
+                    cursor: pointer;
+                }
+                
+                .compact-item span {
+                    flex: 1;
+                    text-overflow: ellipsis;
+                    overflow: hidden;
+                    white-space: nowrap;
+                }
+                
+                .empty-items {
+                    text-align: center;
+                    color: var(--success);
+                    font-size: 13px;
+                    font-style: italic;
+                    padding: 8px;
+                }
+                
+                .more-items {
+                    font-size: 12px;
+                    color: var(--text-secondary);
+                    text-align: center;
+                    padding: 4px;
+                    font-style: italic;
+                }
+                
+                /* Legacy styles for items view */
                 .todo-list-item, .todo-item {
                     background: transparent;
                     border: 2px solid var(--text-primary);
@@ -67,10 +174,6 @@ export class TodoListTool extends ToolBase {
                     color: var(--background);
                     transform: translateY(-1px);
                     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-                }
-                
-                .todo-list-item:hover .todo-list-meta {
-                    color: rgba(255,255,255,0.8);
                 }
                 
                 .todo-item.completed {
@@ -97,7 +200,7 @@ export class TodoListTool extends ToolBase {
                     margin-top: 4px;
                 }
                 
-                .back-button {
+                .back-button, .priority-cycle-btn {
                     margin-right: 10px;
                 }
                 
@@ -110,6 +213,11 @@ export class TodoListTool extends ToolBase {
                 .kanban-button {
                     padding: 8px 10px;
                     font-size: 16px;
+                }
+                
+                .tool-btn.small {
+                    padding: 4px 6px;
+                    font-size: 12px;
                 }
             </style>
         `;
@@ -141,10 +249,25 @@ export class TodoListTool extends ToolBase {
         const content = this.find('.todo-content');
         const breadcrumb = this.find('.todo-breadcrumb');
         
-        if (this.currentView === 'lists') {
-            // Hide breadcrumb in lists view - title is redundant with collapsible section
-            breadcrumb.style.display = 'none';
-            content.innerHTML = this.renderLists();
+        if (this.currentView === 'priority-cycling') {
+            // Show current priority level with cycling functionality
+            breadcrumb.style.display = 'flex';
+            const currentPriority = this.priorityLevels[this.currentPriorityIndex];
+            breadcrumb.innerHTML = `
+                <button class="tool-btn priority-cycle-btn" title="Cycle Priority">
+                    <i class="iconoir-arrow-right"></i>
+                </button>
+                <span class="priority-badge ${currentPriority}">${currentPriority.toUpperCase()}</span>
+                Priority Lists
+            `;
+            content.innerHTML = this.renderPriorityLists(currentPriority);
+            
+            // Bind cycle button
+            const cycleButton = breadcrumb.querySelector('.priority-cycle-btn');
+            if (cycleButton) {
+                cycleButton.addEventListener('click', () => this.cyclePriority());
+            }
+            
             this.bindContentEvents();
         } else if (this.currentView === 'items') {
             // Show breadcrumb in items view for navigation
@@ -159,7 +282,7 @@ export class TodoListTool extends ToolBase {
             // Bind back button
             const backButton = breadcrumb.querySelector('.back-button');
             if (backButton) {
-                backButton.addEventListener('click', () => this.showLists());
+                backButton.addEventListener('click', () => this.showPriorityView());
             }
             
             this.bindContentEvents();
@@ -199,7 +322,7 @@ export class TodoListTool extends ToolBase {
     renderItems() {
         const activeList = this.lists[this.activeListId];
         
-        if (!activeList || activeList.items.length === 0) {
+        if (!activeList || Object.keys(activeList.items).length === 0) {
             return `
                 <div style="text-align: center; color: #6c757d; padding: 40px 20px;">
                     <div style="font-size: 48px; margin-bottom: 10px;"><i class="iconoir-clipboard-check"></i></div>
@@ -210,18 +333,86 @@ export class TodoListTool extends ToolBase {
         }
         
         // Sort items: incomplete first, then completed
-        const sortedItems = [...activeList.items].sort((a, b) => {
-            if (a.completed !== b.completed) {
-                return a.completed ? 1 : -1;
+        const itemsArray = Object.values(activeList.items);
+        const sortedItems = itemsArray.sort((a, b) => {
+            if ((a.status === 'done') !== (b.status === 'done')) {
+                return a.status === 'done' ? 1 : -1;
             }
             return a.createdAt - b.createdAt;
         });
         
         return sortedItems.map(item => `
-            <div class="todo-item ${item.completed ? 'completed' : ''}" data-item-id="${item.id}">
+            <div class="todo-item ${item.status === 'done' ? 'completed' : ''}" data-item-id="${item.id}">
                 ${item.text}
             </div>
         `).join('');
+    }
+    
+    renderPriorityLists(priority) {
+        // Get lists of the specified priority
+        const priorityLists = Object.keys(this.lists).filter(listId => 
+            this.lists[listId].priority === priority
+        );
+        
+        if (priorityLists.length === 0) {
+            return `
+                <div style="text-align: center; color: #6c757d; padding: 40px 20px;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">
+                        <i class="iconoir-task-list"></i>
+                    </div>
+                    <div style="font-weight: 600; margin-bottom: 5px;">No ${priority} priority lists</div>
+                    <div style="font-size: 14px;">Create lists with ${priority} priority to see them here</div>
+                </div>
+            `;
+        }
+        
+        return priorityLists.slice(0, 3).map(listId => {
+            const list = this.lists[listId];
+            const itemsArray = Object.values(list.items);
+            const totalItems = itemsArray.length;
+            const completedItems = itemsArray.filter(item => item.status === 'done').length;
+            const incompleteItems = itemsArray.filter(item => item.status !== 'done').slice(0, 3);
+            
+            return `
+                <div class="priority-list-card" data-list-id="${listId}">
+                    <div class="priority-list-header">
+                        <div class="priority-list-title">${list.name}</div>
+                        <button class="tool-btn small kanban-open-btn" data-list-id="${listId}" title="Open in Kanban">
+                            <i class="iconoir-external-link"></i>
+                        </button>
+                    </div>
+                    <div class="priority-list-progress">
+                        ${completedItems}/${totalItems} completed
+                        ${totalItems === 0 ? '' : ` • ${Math.round((completedItems/totalItems) * 100)}%`}
+                    </div>
+                    <div class="priority-list-items">
+                        ${incompleteItems.length === 0 ? 
+                            '<div class="empty-items">All tasks completed! ✓</div>' :
+                            incompleteItems.map(item => `
+                                <div class="compact-item" data-item-id="${item.id}" data-list-id="${listId}">
+                                    <input type="checkbox" ${item.status === 'done' ? 'checked' : ''}>
+                                    <span>${item.text}</span>
+                                </div>
+                            `).join('')
+                        }
+                        ${incompleteItems.length === 3 && totalItems > 3 ? 
+                            `<div class="more-items">+${totalItems - 3} more items...</div>` : ''
+                        }
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    cyclePriority() {
+        this.currentPriorityIndex = (this.currentPriorityIndex + 1) % this.priorityLevels.length;
+        this.updateView();
+    }
+    
+    showPriorityView() {
+        this.currentView = 'priority-cycling';
+        this.activeListId = null;
+        this.updateView();
     }
     
     showAddInput() {
@@ -261,12 +452,15 @@ export class TodoListTool extends ToolBase {
         await this.saveTodos();
     }
     
-    createList(name) {
+    createList(name, priority = 'medium') {
         const listId = this.generateId();
         this.lists[listId] = {
             id: listId,
             name: name,
-            items: [],
+            items: {}, // Change to object format like kanban window
+            priority: priority,
+            dueDate: null,
+            position: Object.keys(this.lists).length,
             createdAt: Date.now()
         };
         
@@ -280,13 +474,19 @@ export class TodoListTool extends ToolBase {
         if (!this.activeListId || !this.lists[this.activeListId]) return;
         
         const itemId = this.generateId();
-        this.lists[this.activeListId].items.push({
+        const list = this.lists[this.activeListId];
+        
+        // Use kanban-compatible object format
+        list.items[itemId] = {
             id: itemId,
             text: text,
-            completed: false,
+            status: 'todo', // Use kanban status instead of completed boolean
+            dueDate: null,
+            position: Object.keys(list.items).length,
+            linkedItems: [],
             createdAt: Date.now(),
             completedAt: null
-        });
+        };
         
         // Track item creation for analytics
         if (window.usageAnalytics) {
@@ -309,14 +509,14 @@ export class TodoListTool extends ToolBase {
     async toggleItem(itemId) {
         if (!this.activeListId || !this.lists[this.activeListId]) return;
         
-        const item = this.lists[this.activeListId].items.find(i => i.id === itemId);
+        const item = this.lists[this.activeListId].items[itemId];
         if (item) {
-            const wasCompleted = item.completed;
-            item.completed = !item.completed;
-            item.completedAt = item.completed ? Date.now() : null;
+            const wasCompleted = item.status === 'done';
+            item.status = item.status === 'done' ? 'todo' : 'done';
+            item.completedAt = item.status === 'done' ? Date.now() : null;
             
             // Track completion for analytics (only when marking as completed)
-            if (!wasCompleted && item.completed && window.usageAnalytics) {
+            if (!wasCompleted && item.status === 'done' && window.usageAnalytics) {
                 window.usageAnalytics.trackTodoCompleted();
             }
             
@@ -326,7 +526,49 @@ export class TodoListTool extends ToolBase {
     }
     
     bindContentEvents() {
-        // Bind list clicks
+        // Bind priority list card clicks (open list in items view)
+        const priorityListCards = this.container.querySelectorAll('.priority-list-card');
+        priorityListCards.forEach(card => {
+            card.addEventListener('click', (e) => {
+                // Don't trigger if clicking on checkbox or kanban button
+                if (e.target.closest('.compact-item input') || e.target.closest('.kanban-open-btn')) {
+                    return;
+                }
+                const listId = card.getAttribute('data-list-id');
+                this.showItems(listId);
+            });
+        });
+        
+        // Bind compact item checkboxes
+        const compactItems = this.container.querySelectorAll('.compact-item input');
+        compactItems.forEach(checkbox => {
+            checkbox.addEventListener('change', async (e) => {
+                e.stopPropagation();
+                const itemContainer = e.target.closest('.compact-item');
+                const itemId = itemContainer.getAttribute('data-item-id');
+                const listId = itemContainer.getAttribute('data-list-id');
+                
+                // Temporarily set activeListId to update the correct item
+                const originalActiveList = this.activeListId;
+                this.activeListId = listId;
+                await this.toggleItem(itemId);
+                this.activeListId = originalActiveList;
+                
+                // Refresh the current view
+                this.updateView();
+            });
+        });
+        
+        // Bind kanban open buttons
+        const kanbanOpenBtns = this.container.querySelectorAll('.kanban-open-btn');
+        kanbanOpenBtns.forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.openKanbanWindow();
+            });
+        });
+        
+        // Bind old-style list clicks (for items view)
         const listItems = this.container.querySelectorAll('.todo-list-item');
         listItems.forEach(item => {
             item.addEventListener('click', () => {
@@ -335,7 +577,7 @@ export class TodoListTool extends ToolBase {
             });
         });
         
-        // Bind item clicks
+        // Bind item clicks (for items view)
         const todoItems = this.container.querySelectorAll('.todo-item');
         todoItems.forEach(item => {
             item.addEventListener('click', async () => {
@@ -351,20 +593,20 @@ export class TodoListTool extends ToolBase {
     
     async saveTodos() {
         try {
-            // First try to save to external file using Tauri
+            // Save directly in kanban-compatible format
             if (window.__TAURI__ && window.__TAURI__.core) {
                 await window.__TAURI__.core.invoke('write_json_file', {
                     filename: 'ucanduit-todos.json',
                     data: this.lists
                 });
-                console.log('✅ Todos saved to external file');
+                console.log('✅ Todos saved to external file (kanban format)');
                 return;
             }
         } catch (error) {
             console.error('❌ Failed to save todos to file, using storage fallback:', error);
         }
         
-        // Fallback to ToolBase storage
+        // Fallback to ToolBase storage (also in kanban format)
         this.saveToStorage('lists', this.lists);
     }
     
@@ -401,6 +643,58 @@ export class TodoListTool extends ToolBase {
             } catch (error) {
                 console.error('❌ Failed to migrate old todos:', error);
             }
+        }
+        
+        // Add priority field to existing lists that don't have it
+        this.migratePriorityField();
+    }
+    
+    migratePriorityField() {
+        let needsSave = false;
+        Object.keys(this.lists).forEach(listId => {
+            const list = this.lists[listId];
+            
+            // Add priority field if missing
+            if (!list.priority) {
+                list.priority = 'medium'; // Default to medium priority
+                needsSave = true;
+            }
+            
+            // Add other kanban fields if missing
+            if (!list.dueDate) {
+                list.dueDate = null;
+                needsSave = true;
+            }
+            if (list.position === undefined) {
+                list.position = 0;
+                needsSave = true;
+            }
+            
+            // Convert items from array to object format if needed
+            if (Array.isArray(list.items)) {
+                const itemsObject = {};
+                list.items.forEach((item, index) => {
+                    const itemId = item.id || this.generateId();
+                    itemsObject[itemId] = {
+                        id: itemId,
+                        text: item.text,
+                        status: item.completed ? 'done' : 'todo', // Convert completed boolean to status
+                        dueDate: null,
+                        position: index,
+                        linkedItems: [],
+                        createdAt: item.createdAt || Date.now(),
+                        completedAt: item.completedAt || null
+                    };
+                });
+                list.items = itemsObject;
+                needsSave = true;
+                console.log(`🔄 Converted list "${list.name}" items from array to object format`);
+            }
+        });
+        
+        if (needsSave) {
+            this.saveTodos();
+            console.log('🔄 Migrated data to kanban-compatible format');
         }
     }
     

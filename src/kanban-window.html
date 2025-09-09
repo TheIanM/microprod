@@ -270,9 +270,9 @@
                         filename: 'ucanduit-todos.json'
                     });
                     if (fileData) {
-                        // Transform existing data to kanban format
-                        kanbanData.lists = transformToKanbanFormat(fileData);
-                        console.log('✅ Kanban data loaded from external file');
+                        // Data is now already in kanban format from todo module
+                        kanbanData.lists = fileData;
+                        console.log('✅ Kanban data loaded from external file (native format)');
                         return;
                     }
                 }
@@ -285,8 +285,15 @@
                 const storedData = localStorage.getItem('ucanduit-todos');
                 if (storedData) {
                     const data = JSON.parse(storedData);
-                    kanbanData.lists = transformToKanbanFormat(data);
-                    console.log('✅ Kanban data loaded from localStorage');
+                    // Check if data needs transformation (old format)
+                    const firstList = Object.values(data)[0];
+                    if (firstList && Array.isArray(firstList.items)) {
+                        kanbanData.lists = transformToKanbanFormat(data);
+                        console.log('✅ Kanban data loaded and transformed from localStorage');
+                    } else {
+                        kanbanData.lists = data;
+                        console.log('✅ Kanban data loaded from localStorage (native format)');
+                    }
                 }
             } catch (error) {
                 console.error('❌ Failed to load kanban data:', error);
@@ -303,8 +310,8 @@
                 newData[listId] = {
                     id: listId,
                     name: oldList.name,
-                    priority: 'medium', // Default priority for existing lists
-                    dueDate: null,
+                    priority: oldList.priority || 'medium', // Use existing priority or default to medium
+                    dueDate: oldList.dueDate || null,
                     position: 0,
                     createdAt: oldList.createdAt,
                     items: {}

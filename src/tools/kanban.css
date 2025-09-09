@@ -61,10 +61,12 @@
         
         .priority-column {
             flex: 1;
-            min-width: 300px;
+            min-width: 250px;
+            max-width: 275px;
             background: var(--background-secondary);
             border-radius: 12px;
             border: 2px solid var(--border-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             padding: 16px;
             display: flex;
             flex-direction: column;
