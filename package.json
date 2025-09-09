@@ -1,7 +1,7 @@
 {
   "name": "ucanduit-v2",
   "version": "1.0.0",
-  "description": "",
+  "description": "Lightweight gamified productivity suite built with Tauri, featuring priority-based task management, kanban boards, and always-on-top floating windows",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
@@ -12,9 +12,23 @@
     "tauri:build": "tauri build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "productivity",
+    "todo",
+    "kanban",
+    "tauri",
+    "task-management",
+    "pomodoro",
+    "floating-windows",
+    "desktop-app"
+  ],
+  "author": "TheIanM",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheIanM/microprod.git"
+  },
+  "homepage": "https://github.com/TheIanM/microprod#readme",
   "type": "module",
   "devDependencies": {
     "@tauri-apps/cli": "^2.8.3",
