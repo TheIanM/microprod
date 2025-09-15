@@ -524,9 +524,13 @@ export class WeatherTool extends ToolBase {
     onInitialized() {
         super.onInitialized();
         
-        // If we have a saved location but no weather data, fetch it
-        if (this.currentLocation && !this.currentWeatherData) {
-            this.refreshWeather();
+        // Always refresh weather on app launch to ensure fresh data
+        if (this.currentLocation || !this.currentWeatherData) {
+            // Set a short delay to allow UI to render, then refresh
+            setTimeout(() => {
+                console.log('🌤️ Auto-refreshing weather on app launch...');
+                this.searchLocation('Toronto'); // This will fetch fresh data
+            }, 2000);
         }
     }
     
