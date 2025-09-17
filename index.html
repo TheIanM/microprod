@@ -48,6 +48,9 @@
                         <div class="settings-item" onclick="toggleDemo()">
                             <span id="demo-setting-text">Toggle Demo</span>
                         </div>
+                        <div class="settings-item" onclick="openSettingsWindow()">
+                            <span>Open Settings</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -168,25 +171,18 @@
         };
         
         // Dark mode toggle
-        window.toggleDarkMode = function() {
+        window.toggleDarkMode = async function() {
             const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? null : 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             
-            document.documentElement.setAttribute('data-theme', newTheme || '');
-            
-            // Update button text
-            const darkModeText = document.getElementById('dark-mode-setting-text');
-            darkModeText.textContent = newTheme === 'dark' ? 'Light Mode' : 'Dark Mode';
-            
-            // Save preference to localStorage
+            // Update settings if available
             try {
-                if (newTheme === 'dark') {
-                    localStorage.setItem('ucanduit-theme', 'dark');
-                } else {
-                    localStorage.removeItem('ucanduit-theme');
-                }
+                const { settings } = await import('./src/tools/settings.js');
+                await settings.set('ui.theme', newTheme);
             } catch (error) {
-                console.log('Could not save theme preference:', error);
+                console.log('Could not update settings:', error);
+                // Fallback to direct theme change
+                applyTheme(newTheme);
             }
         };
         
@@ -194,6 +190,75 @@
         window.toggleSettings = function() {
             const dropdown = document.getElementById('settings-dropdown');
             dropdown.classList.toggle('show');
+        };
+        
+        // Open settings window function
+        window.openSettingsWindow = async function() {
+            try {
+                if (!window.__TAURI__) {
+                    // Browser fallback - open in new tab
+                    window.open('../src/settings.html', '_blank', 'width=500,height=700');
+                    if (window.statusTicker) {
+                        window.statusTicker.setManual('Settings opened (browser mode)', 'primary', 2000);
+                    }
+                    return;
+                }
+
+                // Use the same pattern as memo and weather windows
+                if (window.__TAURI__.webview && window.__TAURI__.webviewWindow) {
+                    const { webviewWindow } = window.__TAURI__;
+                    
+                    const windowLabel = `settings-window-${Date.now()}`;
+                    const windowTitle = 'Settings - ucanduit';
+                        
+                    const settingsWindow = new webviewWindow.WebviewWindow(windowLabel, {
+                        url: '../src/settings.html',
+                        title: windowTitle,
+                        width: 500,
+                        height: 700,
+                        alwaysOnTop: false,
+                        decorations: true,
+                        transparent: false,
+                        titleBarStyle: 'overlay',
+                        resizable: true,
+                        minimizable: true,
+                        maximizable: false,
+                        center: true
+                    });
+
+                    // Handle window events
+                    settingsWindow.once('tauri://created', () => {
+                        console.log('Settings window created successfully');
+                        if (window.statusTicker) {
+                            window.statusTicker.setManual('Settings window opened', 'success', 2000);
+                        }
+                    });
+
+                    settingsWindow.once('tauri://error', (error) => {
+                        console.error('Settings window creation error:', error);
+                        if (window.statusTicker) {
+                            window.statusTicker.setManual('Failed to open settings window', 'danger', 3000);
+                        }
+                    });
+                    
+                } else {
+                    throw new Error('webviewWindow API not available');
+                }
+                
+                // Close the dropdown after opening settings
+                const dropdown = document.getElementById('settings-dropdown');
+                dropdown.classList.remove('show');
+                
+            } catch (error) {
+                console.error('Failed to open settings window:', error);
+                // Show user-friendly error
+                if (window.statusTicker) {
+                    window.statusTicker.setManual('Failed to open settings', 'danger', 3000);
+                }
+                
+                // Fallback: open in browser tab
+                window.open('./settings.html', '_blank', 'width=500,height=700');
+            }
         };
         
         // Tool management system
@@ -648,6 +713,101 @@
             }
         }
         
+        // Initialize settings integration with main application
+        async function initializeSettingsIntegration() {
+            try {
+                // Import settings manager
+                const { settings } = await import('./src/tools/settings.js');
+                
+                // Listen for settings changes
+                settings.addListener('changed', ({ path, value }) => {
+                    switch (path) {
+                        case 'ui.theme':
+                            applyTheme(value);
+                            break;
+                        case 'timer.defaultDuration':
+                            updateTimerDefaults();
+                            break;
+                        case 'weather.locale':
+                        case 'weather.units':
+                            updateWeatherSettings();
+                            break;
+                        case 'audio.masterVolume':
+                        case 'audio.ambientVolume':
+                        case 'audio.musicVolume':
+                            updateAudioSettings();
+                            break;
+                    }
+                });
+                
+                // Apply current settings
+                const currentTheme = settings.get('ui.theme');
+                if (currentTheme) {
+                    applyTheme(currentTheme);
+                }
+                
+                // Make settings globally available for other modules
+                window.ucanduitSettings = settings;
+                
+                console.log('Settings integration initialized');
+            } catch (error) {
+                console.error('Failed to initialize settings integration:', error);
+            }
+        }
+        
+        // Update timer defaults when settings change
+        async function updateTimerDefaults() {
+            if (window.loadedTools?.timer && typeof window.loadedTools.timer.loadSettings === 'function') {
+                await window.loadedTools.timer.loadSettings();
+                // Re-render timer if it exists
+                if (typeof window.loadedTools.timer.render === 'function') {
+                    window.loadedTools.timer.render();
+                }
+                console.log('Timer settings updated and applied');
+            }
+        }
+        
+        // Update weather settings when changed
+        function updateWeatherSettings() {
+            if (window.loadedTools?.weather) {
+                // Weather tool will pick up new settings on next update
+                console.log('Weather settings updated');
+            }
+        }
+        
+        // Update audio settings when changed
+        function updateAudioSettings() {
+            // Audio tools will pick up new volume settings
+            console.log('Audio settings updated');
+        }
+        
+        // Apply theme to main application
+        function applyTheme(theme) {
+            const html = document.documentElement;
+            const darkModeText = document.getElementById('dark-mode-setting-text');
+            
+            if (theme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                if (darkModeText) darkModeText.textContent = 'Light Mode';
+                localStorage.setItem('ucanduit-theme', 'dark');
+            } else if (theme === 'light') {
+                html.setAttribute('data-theme', '');
+                if (darkModeText) darkModeText.textContent = 'Dark Mode';
+                localStorage.removeItem('ucanduit-theme');
+            } else if (theme === 'auto') {
+                // Auto mode - use system preference
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                if (prefersDark) {
+                    html.setAttribute('data-theme', 'dark');
+                    if (darkModeText) darkModeText.textContent = 'Light Mode';
+                } else {
+                    html.setAttribute('data-theme', '');
+                    if (darkModeText) darkModeText.textContent = 'Dark Mode';
+                }
+                localStorage.removeItem('ucanduit-theme');
+            }
+        }
+        
         // Load all modules on startup by expanding, loading, then collapsing
         async function loadAllModules() {
             const modules = ['timer', 'sounds', 'ambient', 'todos', 'memos', 'weather', 'lofi'];
@@ -686,6 +846,9 @@
             randomizeBackground();
             // Initialize window using the imported module
             await window.windowManager.initializeWindow();
+            
+            // Initialize settings integration
+            await initializeSettingsIntegration();
             
             // Initialize usage analytics
             const analytics = await import('./src/tools/analytics.js');

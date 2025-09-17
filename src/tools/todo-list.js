@@ -14,6 +14,7 @@ export class TodoListTool extends ToolBase {
         this.currentView = 'priority-cycling'; // New priority cycling view
         this.currentPriorityIndex = 0; // Track which priority level we're showing
         this.priorityLevels = ['high', 'medium', 'low'];
+        this.addingType = null; // Track what we're adding: 'list' or 'task'
     }
     
     async render() {
@@ -30,6 +31,8 @@ export class TodoListTool extends ToolBase {
                         <button class="tool-btn kanban-button" title="Open Kanban Board">
                             <i class="iconoir-kanban-board"></i>
                         </button>
+                        <button class="tool-btn add-list-button" style="display: none;" title="Add List">+ Add List</button>
+                        <button class="tool-btn add-task-button" style="display: none;" title="Add Task">+ Add Task</button>
                         <button class="tool-btn add-button">+ Add</button>
                     </div>
                 </div>
@@ -227,12 +230,16 @@ export class TodoListTool extends ToolBase {
     
     bindEvents() {
         const addButton = this.find('.add-button');
+        const addListButton = this.find('.add-list-button');
+        const addTaskButton = this.find('.add-task-button');
         const kanbanButton = this.find('.kanban-button');
         const confirmAdd = this.find('.confirm-add');
         const cancelAdd = this.find('.cancel-add');
         const newItemInput = this.find('.new-item-text');
         
         if (addButton) addButton.addEventListener('click', () => this.showAddInput());
+        if (addListButton) addListButton.addEventListener('click', () => this.showAddInput('list'));
+        if (addTaskButton) addTaskButton.addEventListener('click', () => this.showAddInput('task'));
         if (kanbanButton) kanbanButton.addEventListener('click', () => this.openKanbanWindow());
         if (confirmAdd) confirmAdd.addEventListener('click', async () => await this.handleAdd());
         if (cancelAdd) cancelAdd.addEventListener('click', () => this.hideAddInput());
@@ -248,6 +255,9 @@ export class TodoListTool extends ToolBase {
     updateView() {
         const content = this.find('.todo-content');
         const breadcrumb = this.find('.todo-breadcrumb');
+        const addButton = this.find('.add-button');
+        const addListButton = this.find('.add-list-button');
+        const addTaskButton = this.find('.add-task-button');
         
         if (this.currentView === 'priority-cycling') {
             // Show current priority level with cycling functionality
@@ -261,6 +271,11 @@ export class TodoListTool extends ToolBase {
                 Priority Lists
             `;
             content.innerHTML = this.renderPriorityLists(currentPriority);
+            
+            // Show Add List button, hide others
+            if (addButton) addButton.style.display = 'none';
+            if (addListButton) addListButton.style.display = 'inline-block';
+            if (addTaskButton) addTaskButton.style.display = 'none';
             
             // Bind cycle button
             const cycleButton = breadcrumb.querySelector('.priority-cycle-btn');
@@ -279,6 +294,11 @@ export class TodoListTool extends ToolBase {
             `;
             content.innerHTML = this.renderItems();
             
+            // Show Add Task button, hide others
+            if (addButton) addButton.style.display = 'none';
+            if (addListButton) addListButton.style.display = 'none';
+            if (addTaskButton) addTaskButton.style.display = 'inline-block';
+            
             // Bind back button
             const backButton = breadcrumb.querySelector('.back-button');
             if (backButton) {
@@ -286,6 +306,11 @@ export class TodoListTool extends ToolBase {
             }
             
             this.bindContentEvents();
+        } else {
+            // Default view - show generic Add button
+            if (addButton) addButton.style.display = 'inline-block';
+            if (addListButton) addListButton.style.display = 'none';
+            if (addTaskButton) addTaskButton.style.display = 'none';
         }
     }
     
@@ -415,15 +440,26 @@ export class TodoListTool extends ToolBase {
         this.updateView();
     }
     
-    showAddInput() {
+    showAddInput(type = null) {
         const addInput = this.container.querySelector('.add-item-input');
         const textInput = this.container.querySelector('.new-item-text');
+        
+        // Determine what we're adding based on type parameter or current context
+        if (type) {
+            this.addingType = type;
+        } else if (this.currentView === 'priority-cycling') {
+            this.addingType = 'list';
+        } else if (this.currentView === 'items') {
+            this.addingType = 'task';
+        } else {
+            this.addingType = 'list'; // Default fallback
+        }
         
         addInput.style.display = 'block';
         textInput.focus();
         textInput.value = '';
         
-        if (this.currentView === 'lists') {
+        if (this.addingType === 'list') {
             textInput.placeholder = 'List name (e.g., "Work Tasks", "Shopping")';
         } else {
             textInput.placeholder = 'What needs to be done?';
@@ -433,6 +469,7 @@ export class TodoListTool extends ToolBase {
     hideAddInput() {
         const addInput = this.container.querySelector('.add-item-input');
         addInput.style.display = 'none';
+        this.addingType = null; // Reset adding type
     }
     
     async handleAdd() {
@@ -441,9 +478,11 @@ export class TodoListTool extends ToolBase {
         
         if (!text) return;
         
-        if (this.currentView === 'lists') {
-            this.createList(text);
-        } else {
+        if (this.addingType === 'list') {
+            // Get current priority for new list
+            const currentPriority = this.priorityLevels[this.currentPriorityIndex];
+            this.createList(text, currentPriority);
+        } else if (this.addingType === 'task') {
             this.createItem(text);
         }
         

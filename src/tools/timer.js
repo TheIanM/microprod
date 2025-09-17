@@ -10,14 +10,15 @@ export class TimerTool extends ToolBase {
     constructor(container) {
         super(container);
         
-        // Timer state
-        this.totalSeconds = 25 * 60; // Default 25 minutes (Pomodoro)
+        // Initialize with default values (will be updated from settings)
+        this.defaultDuration = 25; // minutes
+        this.totalSeconds = this.defaultDuration * 60;
         this.remainingSeconds = this.totalSeconds;
         this.isRunning = false;
         this.intervalId = null;
         this.startTime = null;
         
-        // Presets for common timer durations
+        // Presets for common timer durations (will be updated from settings)
         this.presets = {
             pomodoro: 25 * 60,
             shortBreak: 5 * 60,
@@ -36,7 +37,44 @@ export class TimerTool extends ToolBase {
     // Override base class init to load data before rendering
     async init() {
         await this.loadFromStorage();
+        await this.loadSettings();
         await super.init(); // This will call render() and bindEvents()
+    }
+    
+    // Load settings and update timer defaults
+    async loadSettings() {
+        try {
+            // Use global settings if available
+            if (window.ucanduitSettings) {
+                const settings = window.ucanduitSettings;
+                
+                // Update default duration
+                const defaultDuration = settings.get('timer.defaultDuration') || 25;
+                this.defaultDuration = defaultDuration;
+                
+                // Update presets
+                const presets = settings.get('timer.presets');
+                if (presets) {
+                    this.presets = {
+                        pomodoro: (presets.pomodoro || 25) * 60,
+                        shortBreak: (presets.shortBreak || 5) * 60,
+                        longBreak: (presets.longBreak || 15) * 60,
+                        focus: (presets.focus || 45) * 60,
+                        quick: (presets.quick || 10) * 60
+                    };
+                }
+                
+                // Reset timer to new default if not running
+                if (!this.isRunning) {
+                    this.totalSeconds = this.defaultDuration * 60;
+                    this.remainingSeconds = this.totalSeconds;
+                }
+                
+                console.log(`Timer settings loaded: ${this.defaultDuration} min default`);
+            }
+        } catch (error) {
+            console.warn('Could not load timer settings:', error);
+        }
     }
     
     
@@ -114,9 +152,9 @@ export class TimerTool extends ToolBase {
                     <!-- Duration Slider -->
                     <div style="margin-bottom: 12px;">
                         <input type="range" class="slider" id="timer-slider-${this.id}" 
-                               min="5" max="120" value="25" step="5">
+                               min="5" max="120" value="${this.defaultDuration}" step="5">
                         <div style="font-size: 11px; color: var(--text-secondary); margin-top: 2px;">
-                            <span id="slider-label-${this.id}">25 minutes</span>
+                            <span id="slider-label-${this.id}">${this.defaultDuration} minutes</span>
                         </div>
                     </div>
                     
