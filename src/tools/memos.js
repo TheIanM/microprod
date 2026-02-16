@@ -258,7 +258,7 @@ export class MemosTool extends ToolBase {
         try {
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
-                const url = memoId ? `../src/memo-window.html?memoId=${memoId}` : '../src/memo-window.html';
+                const url = memoId ? `src/memo-window.html?memoId=${memoId}` : 'src/memo-window.html';
                 window.open(url, '_blank', 'width=600,height=500');
                 this.updateStatus('Opened memo window (browser mode)', 'primary', 2000);
                 return;
@@ -267,9 +267,9 @@ export class MemosTool extends ToolBase {
             // Use the same pattern as splash.html but with cleaner config
             if (window.__TAURI__.webview && window.__TAURI__.webviewWindow) {
                 const { webviewWindow } = window.__TAURI__;
-                
+
                 // Create memo window using unique label for each memo
-                const url = memoId ? `../src/memo-window.html?memoId=${memoId}` : '../src/memo-window.html';
+                const url = memoId ? `src/memo-window.html?memoId=${memoId}` : 'src/memo-window.html';
                 const windowLabel = memoId ? `memo-window-${memoId}` : `memo-window-new-${Date.now()}`;
                 const windowTitle = memoId && this.memos[memoId] ? 
                     `${this.memos[memoId].title} - ucanduit` : 
@@ -306,7 +306,7 @@ export class MemosTool extends ToolBase {
             this.updateStatus('Error: ' + error.message, 'danger', 3000);
             
             // Fallback: open in browser tab
-            const fallbackUrl = memoId ? `./memo-window.html?memoId=${memoId}` : './memo-window.html';
+            const fallbackUrl = memoId ? `src/memo-window.html?memoId=${memoId}` : 'src/memo-window.html';
             window.open(fallbackUrl, '_blank', 'width=600,height=500');
         }
     }

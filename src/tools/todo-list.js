@@ -742,7 +742,7 @@ export class TodoListTool extends ToolBase {
         try {
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
-                const kanbanUrl = '../src/kanban-window.html';
+                const kanbanUrl = 'src/kanban-window.html';
                 const kanbanWindow = window.open(kanbanUrl, 'kanban-board', 
                     'width=1000,height=700,resizable=yes,scrollbars=yes');
                     
@@ -766,7 +766,7 @@ export class TodoListTool extends ToolBase {
                 const windowTitle = `Kanban Board - ucanduit`;
                     
                 const kanbanWindow = new webviewWindow.WebviewWindow(windowLabel, {
-                    url: '../src/kanban-window.html',
+                    url: 'src/kanban-window.html',
                     title: windowTitle,
                     width: 1000,
                     height: 700,
@@ -804,7 +804,7 @@ export class TodoListTool extends ToolBase {
             }
             
             // Fallback: open in browser tab
-            const fallbackUrl = '../src/kanban-window.html';
+            const fallbackUrl = 'src/kanban-window.html';
             window.open(fallbackUrl, '_blank', 'width=1000,height=700');
         }
     }

@@ -14,7 +14,7 @@
       {
         "label": "splash",
         "title": "ucanduit",
-        "url": "../src/splash.html",
+        "url": "src/splash.html",
         "width": 400,
         "height": 300,
         "resizable": false,
@@ -26,7 +26,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; media-src 'self' asset: https://asset.localhost; connect-src 'self' https://dd.weather.gc.ca https://weather.gc.ca;",
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; media-src 'self' asset: https://asset.localhost; connect-src 'self' https://dd.weather.gc.ca https://weather.gc.ca;",
       "assetProtocol": {
         "enable": true,
         "scope": ["**"]
@@ -37,7 +37,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

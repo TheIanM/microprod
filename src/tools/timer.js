@@ -659,7 +659,7 @@ export class TimerTool extends ToolBase {
             
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
-                const url = '../src/timer-window.html';
+                const url = 'src/timer-window.html';
                 window.open(url, '_blank', 'width=400,height=600');
                 if (window.updateStatus) {
                     window.updateStatus('Opened timer window (browser mode)', 'primary', 2000);
@@ -675,7 +675,7 @@ export class TimerTool extends ToolBase {
                 const windowTitle = `Timer - ucanduit`;
                     
                 const timerWindow = new webviewWindow.WebviewWindow(windowLabel, {
-                    url: '../src/timer-window.html',
+                    url: 'src/timer-window.html',
                     title: windowTitle,
                     width: 400,
                     height: 600,
@@ -712,7 +712,7 @@ export class TimerTool extends ToolBase {
             }
             
             // Fallback: open in browser tab
-            const fallbackUrl = './src/timer-window.html';
+            const fallbackUrl = 'src/timer-window.html';
             window.open(fallbackUrl, '_blank', 'width=400,height=600');
         }
     }

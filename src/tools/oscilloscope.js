@@ -29,8 +29,8 @@ export class OscilloscopeTool {
         
         // Metaballs system
         this.metaballs = [];
-        this.numMetaballs = 8;
-        this.baseRadius = 25;
+        this.numMetaballs = 4;  // Scale up to small cluster
+        this.baseRadius = 25;   // Scale down individual ball size
         
         // Goo creature behavior
         this.emotionalState = 'calm';
@@ -153,11 +153,15 @@ export class OscilloscopeTool {
                 vx: (Math.random() - 0.5) * 0.2, // Gentle organic movement
                 vy: (Math.random() - 0.5) * 0.2,
                 frequencyRange: {
-                    start: Math.floor(i * 32),
-                    end: Math.floor((i + 1) * 32)
+                    start: Math.floor(i * 64),  // Wider frequency bands for 4 metaballs
+                    end: Math.floor((i + 1) * 64)
                 },
                 breathingPhase: Math.random() * Math.PI * 2,
-                breathingSpeed: 0.008 + Math.random() * 0.015
+                breathingSpeed: 0.008 + Math.random() * 0.015,
+                // Fluid deformation properties
+                deformationX: 1.0, // Scale factor for X deformation
+                deformationY: 1.0, // Scale factor for Y deformation
+                compressionForce: 0, // How much the ball is compressed
             });
         }
     }
@@ -291,14 +295,18 @@ export class OscilloscopeTool {
             }
             amplitude /= (ball.frequencyRange.end - ball.frequencyRange.start);
             
-            // Update metaball radius based on audio
-            ball.currentRadius = ball.baseRadius + (amplitude / 255) * 25;
-            
-            // Organic movement with audio influence
+            // Update metaball radius based on audio — dramatic expansion for visible reactivity
+            const normalizedAmplitude = amplitude / 255;
+            ball.currentRadius = ball.baseRadius + normalizedAmplitude * 55;
+
+            // Organic movement with strong audio influence so the creature visibly dances
             ball.breathingPhase += ball.breathingSpeed;
-            const audioInfluence = (amplitude / 255) * 0.5;
-            ball.x += ball.vx + Math.sin(ball.breathingPhase) * (0.3 + audioInfluence);
-            ball.y += ball.vy + Math.cos(ball.breathingPhase * 1.1) * (0.2 + audioInfluence * 0.5);
+            const audioInfluence = normalizedAmplitude * 1.8;
+            ball.x += ball.vx + Math.sin(ball.breathingPhase) * (0.4 + audioInfluence);
+            ball.y += ball.vy + Math.cos(ball.breathingPhase * 1.1) * (0.3 + audioInfluence * 0.8);
+
+            // Store amplitude for rendering (glow intensity, outline thickness)
+            ball.audioAmplitude = normalizedAmplitude;
             
             // Apply container physics
             this.applyContainerPhysics(ball);
@@ -306,28 +314,68 @@ export class OscilloscopeTool {
     }
     
     applyContainerPhysics(ball) {
-        const margin = ball.currentRadius * 0.8;
         const bounds = this.containerBounds;
         
         // Convert to absolute coordinates
         const absX = this.centerX + ball.x;
         const absY = this.centerY + ball.y;
         
-        // Check boundaries and bounce with squishing effect
-        if (absX - margin < bounds.x) {
-            ball.x = bounds.x + margin - this.centerX;
+        // Reset deformation each frame
+        ball.deformationX = 1.0;
+        ball.deformationY = 1.0;
+        ball.compressionForce = 0;
+        
+        const effectiveRadius = ball.currentRadius * 0.8;
+        let hitWall = false;
+        
+        // Check boundaries and apply fluid deformation
+        // Left wall
+        if (absX - effectiveRadius < bounds.x) {
+            const penetration = Math.max(0, (bounds.x - (absX - effectiveRadius)) / effectiveRadius);
+            ball.x = bounds.x + effectiveRadius - this.centerX;
             ball.vx = Math.abs(ball.vx) * 0.5; // Gentle bounce
-        } else if (absX + margin > bounds.x + bounds.width) {
-            ball.x = bounds.x + bounds.width - margin - this.centerX;
+            ball.deformationX = Math.max(0.3, 1.0 - penetration * 0.6); // Squish horizontally
+            ball.compressionForce = penetration;
+            hitWall = true;
+        }
+        // Right wall  
+        else if (absX + effectiveRadius > bounds.x + bounds.width) {
+            const penetration = Math.max(0, ((absX + effectiveRadius) - (bounds.x + bounds.width)) / effectiveRadius);
+            ball.x = bounds.x + bounds.width - effectiveRadius - this.centerX;
             ball.vx = -Math.abs(ball.vx) * 0.5;
+            ball.deformationX = Math.max(0.3, 1.0 - penetration * 0.6);
+            ball.compressionForce = penetration;
+            hitWall = true;
         }
         
-        if (absY - margin < bounds.y) {
-            ball.y = bounds.y + margin - this.centerY;
+        // Top wall
+        if (absY - effectiveRadius < bounds.y) {
+            const penetration = Math.max(0, (bounds.y - (absY - effectiveRadius)) / effectiveRadius);
+            ball.y = bounds.y + effectiveRadius - this.centerY;
             ball.vy = Math.abs(ball.vy) * 0.5;
-        } else if (absY + margin > bounds.y + bounds.height) {
-            ball.y = bounds.y + bounds.height - margin - this.centerY;
+            ball.deformationY = Math.max(0.3, 1.0 - penetration * 0.6); // Squish vertically
+            ball.compressionForce = Math.max(ball.compressionForce, penetration);
+            hitWall = true;
+        }
+        // Bottom wall
+        else if (absY + effectiveRadius > bounds.y + bounds.height) {
+            const penetration = Math.max(0, ((absY + effectiveRadius) - (bounds.y + bounds.height)) / effectiveRadius);
+            ball.y = bounds.y + bounds.height - effectiveRadius - this.centerY;
             ball.vy = -Math.abs(ball.vy) * 0.5;
+            ball.deformationY = Math.max(0.3, 1.0 - penetration * 0.6);
+            ball.compressionForce = Math.max(ball.compressionForce, penetration);
+            hitWall = true;
+        }
+        
+        // When compressed, the ball spreads out in the non-compressed direction (fluid behavior)
+        if (hitWall && ball.compressionForce > 0) {
+            const expansion = 1.0 + ball.compressionForce * 0.4;
+            if (ball.deformationX < 1.0) {
+                ball.deformationY *= expansion; // Spread vertically when compressed horizontally
+            }
+            if (ball.deformationY < 1.0) {
+                ball.deformationX *= expansion; // Spread horizontally when compressed vertically
+            }
         }
     }
     
@@ -338,14 +386,15 @@ export class OscilloscopeTool {
         for (let i = 0; i < this.metaballs.length; i++) {
             const ball = this.metaballs[i];
             
-            // Synthetic audio-like patterns
+            // Synthetic audio-like patterns — noticeable pulsing even in demo
             const wave = Math.sin(time * 1.5 + i * 0.7) * 0.5 + 0.5;
-            ball.currentRadius = ball.baseRadius + wave * 18;
-            
-            // Gentle organic movement
+            ball.currentRadius = ball.baseRadius + wave * 30;
+            ball.audioAmplitude = wave * 0.6; // Feed into glow so demo mode also glows
+
+            // Organic movement — visible drift so the creature feels alive
             ball.breathingPhase += ball.breathingSpeed;
-            ball.x += Math.sin(ball.breathingPhase + i) * 0.15;
-            ball.y += Math.cos(ball.breathingPhase * 0.9 + i) * 0.12;
+            ball.x += Math.sin(ball.breathingPhase + i) * 0.25;
+            ball.y += Math.cos(ball.breathingPhase * 0.9 + i) * 0.2;
             
             this.applyContainerPhysics(ball);
         }
@@ -410,51 +459,163 @@ export class OscilloscopeTool {
         this.ctx.restore();
     }
     
-    drawMetaballsMask() {
-        // Draw metaballs as masks that reveal the breathing background
-        this.ctx.save();
-        
-        // Set up composite operation for masking
-        this.ctx.globalCompositeOperation = 'source-atop';
-        
-        const baseColor = window.currentBackgroundColor || '#4ecf9d';
-        const complementary = this.getComplementaryColor(baseColor);
-        
+    /**
+     * Renders metaballs using an offscreen canvas with alpha thresholding.
+     *
+     * How it works:
+     * 1. Draw each metaball as a radial gradient on an offscreen canvas
+     *    (center is opaque, edges fade out). Where blobs overlap, alpha adds up.
+     * 2. Read the pixel data and threshold the alpha channel — any pixel above
+     *    the threshold becomes fully opaque, everything else is transparent.
+     *    This creates a single merged silhouette where overlapping blobs fuse together.
+     * 3. Use this silhouette as a clipping mask on the main canvas, then draw
+     *    the breathing background *only* inside the mask. The result: the goo
+     *    creature's body reveals colorful inner light.
+     * 4. Draw a subtle outline around the merged shape for definition.
+     */
+    drawMergedMetaballs() {
+        if (this.metaballs.length === 0) return;
+
+        const canvasW = this.canvas.width / window.devicePixelRatio;
+        const canvasH = this.canvas.height / window.devicePixelRatio;
+
+        // Create (or reuse) an offscreen canvas for the metaball field
+        if (!this._offscreen || this._offscreen.width !== canvasW || this._offscreen.height !== canvasH) {
+            this._offscreen = document.createElement('canvas');
+            this._offscreen.width = canvasW;
+            this._offscreen.height = canvasH;
+        }
+        const offCtx = this._offscreen.getContext('2d');
+        offCtx.clearRect(0, 0, canvasW, canvasH);
+
+        // --- Pass 1: Draw metaball gradients onto offscreen canvas ---
+        // Each ball is a radial gradient: opaque center, transparent edge.
+        // Overlapping balls accumulate alpha, which is key to the merging effect.
         for (const ball of this.metaballs) {
             const x = this.centerX + ball.x;
             const y = this.centerY + ball.y;
-            
-            // Draw metaball shape
-            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, ball.currentRadius);
-            gradient.addColorStop(0, this.hexToRgba(complementary, 0.9));
-            gradient.addColorStop(0.7, this.hexToRgba(complementary, 0.6));
-            gradient.addColorStop(1, this.hexToRgba(complementary, 0.1));
-            
-            this.ctx.fillStyle = gradient;
-            this.ctx.beginPath();
-            this.ctx.arc(x, y, ball.currentRadius, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Add subtle glow
-            this.ctx.shadowColor = complementary;
-            this.ctx.shadowBlur = 10;
-            this.ctx.fill();
-            this.ctx.shadowBlur = 0;
+
+            offCtx.save();
+            // Apply wall-squish deformation (keeps the physics system intact)
+            offCtx.translate(x, y);
+            offCtx.scale(ball.deformationX, ball.deformationY);
+            offCtx.translate(-x, -y);
+
+            const gradient = offCtx.createRadialGradient(x, y, 0, x, y, ball.currentRadius);
+            // High alpha in center, falls to 0 at edge
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 1.0)');
+            gradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.6)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            offCtx.fillStyle = gradient;
+            offCtx.beginPath();
+            offCtx.arc(x, y, ball.currentRadius, 0, Math.PI * 2);
+            offCtx.fill();
+            offCtx.restore();
         }
-        
+
+        // --- Pass 2: Alpha threshold to create a crisp merged silhouette ---
+        const imageData = offCtx.getImageData(0, 0, canvasW, canvasH);
+        const pixels = imageData.data;
+        // Threshold: pixels with alpha above this value become solid, the rest become transparent.
+        // Lower = more blobby/expansive, higher = tighter shapes. 0.38 feels organic.
+        const alphaThreshold = 0.38 * 255;
+
+        for (let i = 3; i < pixels.length; i += 4) {
+            pixels[i] = pixels[i] >= alphaThreshold ? 255 : 0;
+        }
+        offCtx.putImageData(imageData, 0, 0);
+
+        // --- Pass 3: Use the silhouette as a clip mask, draw breathing bg inside ---
+        this.ctx.save();
+        // Draw the offscreen mask as a clip path using 'destination-in' composite trick:
+        // First draw breathing background, then mask it with the silhouette.
+
+        // We use a second temporary canvas to composite the breathing bg + mask
+        if (!this._compositeCanvas || this._compositeCanvas.width !== canvasW || this._compositeCanvas.height !== canvasH) {
+            this._compositeCanvas = document.createElement('canvas');
+            this._compositeCanvas.width = canvasW;
+            this._compositeCanvas.height = canvasH;
+        }
+        const compCtx = this._compositeCanvas.getContext('2d');
+        compCtx.clearRect(0, 0, canvasW, canvasH);
+
+        // Draw the breathing background onto the composite canvas
+        compCtx.save();
+        this.breathingCircles.forEach(circle => {
+            // Advance breathing animation
+            circle.breathingPhase += circle.breathingSpeed;
+            const breathingScale = circle.breathingScale + 0.25 * Math.sin(circle.breathingPhase);
+            const currentRadius = circle.baseRadius * breathingScale;
+
+            const circleX = this.centerX + circle.x;
+            const circleY = this.centerY + circle.y;
+
+            const gradient = compCtx.createRadialGradient(
+                circleX, circleY, 0,
+                circleX, circleY, currentRadius
+            );
+            const color1 = this.hexToRgba(circle.colors[0], circle.opacity);
+            const color2 = this.hexToRgba(circle.colors[1], circle.opacity * 0.5);
+            gradient.addColorStop(0, color1);
+            gradient.addColorStop(1, color2);
+
+            compCtx.fillStyle = gradient;
+            compCtx.beginPath();
+            compCtx.arc(circleX, circleY, currentRadius, 0, Math.PI * 2);
+            compCtx.fill();
+        });
+        compCtx.restore();
+
+        // Mask: keep only the breathing bg pixels where the metaball silhouette exists
+        compCtx.globalCompositeOperation = 'destination-in';
+        compCtx.drawImage(this._offscreen, 0, 0);
+        compCtx.globalCompositeOperation = 'source-over';
+
+        // Draw the masked result onto the main canvas
+        this.ctx.drawImage(this._compositeCanvas, 0, 0);
+
+        // --- Pass 4: Outline / glow around the merged shape ---
+        const baseColor = window.currentBackgroundColor || '#4ecf9d';
+        const complementary = this.getComplementaryColor(baseColor);
+
+        // Average audio amplitude across all metaballs for outline intensity
+        let avgAmplitude = 0;
+        for (const ball of this.metaballs) {
+            avgAmplitude += (ball.audioAmplitude || 0);
+        }
+        avgAmplitude /= this.metaballs.length;
+
+        // Draw a subtle glow by stroking the outline of the thresholded shape.
+        // We re-read the mask from the offscreen canvas and draw it as a soft outline.
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.4 + avgAmplitude * 0.4;
+        this.ctx.shadowColor = complementary;
+        this.ctx.shadowBlur = 8 + avgAmplitude * 12;
+        // Draw the silhouette as a colored overlay for the glow effect
+        // We tint the offscreen mask by drawing a colored rect masked by it
+        offCtx.globalCompositeOperation = 'source-in';
+        offCtx.fillStyle = complementary;
+        offCtx.fillRect(0, 0, canvasW, canvasH);
+        offCtx.globalCompositeOperation = 'source-over';
+        this.ctx.drawImage(this._offscreen, 0, 0);
+        this.ctx.restore();
+
         this.ctx.restore();
     }
     
     animate() {
-        this.ctx.clearRect(0, 0, this.canvas.width / window.devicePixelRatio, 
+        this.ctx.clearRect(0, 0, this.canvas.width / window.devicePixelRatio,
                          this.canvas.height / window.devicePixelRatio);
-        
+
         this.updateWaveformData();
-        
-        this.drawBoundaryContainer(); // Debug boundary (optional)
-        this.drawBreathingBackground(); // Static breathing circles background
-        this.drawMetaballsMask(); // Metaballs as masks revealing background
-        
+
+        // Optional debug boundary
+        this.drawBoundaryContainer();
+
+        // Render the goo creature: merged metaballs revealing breathing background
+        this.drawMergedMetaballs();
+
         this.animationId = requestAnimationFrame(() => this.animate());
     }
     

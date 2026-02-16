@@ -417,7 +417,7 @@ export class WeatherTool extends ToolBase {
         try {
             if (!window.__TAURI__) {
                 // Browser fallback - open in new tab
-                const url = './src/weather-details.html';
+                const url = 'src/weather-details.html';
                 window.open(url, '_blank', 'width=700,height=600');
                 this.updateStatus('Opened weather details (browser mode)', 'primary', 2000);
                 return;
@@ -431,7 +431,7 @@ export class WeatherTool extends ToolBase {
                 const windowTitle = `${this.currentLocation || 'Weather'} Details - ucanduit`;
                     
                 const weatherWindow = new webviewWindow.WebviewWindow(windowLabel, {
-                    url: '../src/weather-details.html',
+                    url: '.src/weather-details.html',
                     title: windowTitle,
                     width: 700,
                     height: 600,
@@ -461,7 +461,7 @@ export class WeatherTool extends ToolBase {
             this.updateStatus('Error: ' + error.message, 'danger', 3000);
             
             // Fallback: open in browser tab
-            const fallbackUrl = './src/weather-details.html';
+            const fallbackUrl = 'src/weather-details.html';
             window.open(fallbackUrl, '_blank', 'width=700,height=600');
         }
     }

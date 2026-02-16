@@ -589,7 +589,10 @@ export class LofiTool extends AudioToolBase {
             if (music.availableFiles.length > 0) {
                 // Filter files by format preference (MP3 first, then others)
                 const mp3Files = music.availableFiles.filter(file => file.toLowerCase().endsWith('.mp3'));
-                const otherFiles = music.availableFiles.filter(file => !file.toLowerCase().endsWith('.mp3','.wav'));
+                const otherFiles = music.availableFiles.filter(file => {
+                    const lower = file.toLowerCase();
+                    return !lower.endsWith('.mp3') && !lower.endsWith('.wav');
+                });
                 
                 console.log(`🎶 [LofiTool] File breakdown for ${config.displayName}:`);
                 console.log(`   MP3 files: ${mp3Files.length}`);
