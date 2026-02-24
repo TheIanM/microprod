@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use tauri::Manager;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AudioFile {
@@ -27,12 +28,34 @@ pub struct AudioDirectory {
 
 const SUPPORTED_AUDIO_EXTENSIONS: &[&str] = &["mp3", "wav", "ogg", "m4a", "aac", "flac", "wma"];
 
-#[tauri::command]
-async fn scan_audio_directories() -> Result<Vec<AudioDirectory>, String> {
+/// Resolve the audio base directory. In production, audio files live in the
+/// app's resource directory (Vite copies public/ contents to dist/, which Tauri
+/// bundles into Resources/). In dev mode, they're at <project-root>/public/audio/.
+fn resolve_audio_base(app_handle: &tauri::AppHandle) -> Result<PathBuf, String> {
+    // Try resource dir first (production bundle)
+    if let Ok(resource_dir) = app_handle.path().resource_dir() {
+        let prod_path = resource_dir.join("audio");
+        if prod_path.exists() {
+            return Ok(prod_path);
+        }
+    }
+
+    // Fallback: dev mode path (CWD is src-tauri/, parent is project root)
     let current_dir =
         std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
-    let project_root = current_dir.parent().ok_or("Cannot find project root")?;
-    let audio_path = project_root.join("public").join("audio");
+    if let Some(project_root) = current_dir.parent() {
+        let dev_path = project_root.join("public").join("audio");
+        if dev_path.exists() {
+            return Ok(dev_path);
+        }
+    }
+
+    Err("Could not find audio directory in resource or dev paths".to_string())
+}
+
+#[tauri::command]
+async fn scan_audio_directories(app_handle: tauri::AppHandle) -> Result<Vec<AudioDirectory>, String> {
+    let audio_path = resolve_audio_base(&app_handle)?;
 
     if !audio_path.exists() {
         return Err("public/audio directory does not exist".to_string());
@@ -72,16 +95,21 @@ async fn scan_audio_directories() -> Result<Vec<AudioDirectory>, String> {
 }
 
 #[tauri::command]
-async fn scan_audio_directory(directory_path: String) -> Result<DirectoryContents, String> {
+async fn scan_audio_directory(app_handle: tauri::AppHandle, directory_path: String) -> Result<DirectoryContents, String> {
     println!("🦀 Scanning directory: {}", directory_path);
 
-    let current_dir =
-        std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
-    let project_root = current_dir.parent().ok_or("Cannot find project root")?;
-    let path = if directory_path.starts_with('/') {
-        project_root.join("public").join(&directory_path[1..])
+    let audio_base = resolve_audio_base(&app_handle)?;
+    // audio_base already points to the "audio" directory, so strip the leading
+    // "/audio/" prefix from directory_path before joining.
+    let relative = directory_path
+        .trim_start_matches('/')
+        .strip_prefix("audio/")
+        .or_else(|| directory_path.trim_start_matches('/').strip_prefix("audio"))
+        .unwrap_or(directory_path.trim_start_matches('/'));
+    let path = if relative.is_empty() {
+        audio_base
     } else {
-        project_root.join("public").join(&directory_path)
+        audio_base.join(relative)
     };
 
     println!("🦀 Resolved path: {:?}", path);

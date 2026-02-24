@@ -33,21 +33,21 @@
             <div class="header-container">
                 <h1 class="header-title">ucanduit</h1>
                 <div class="settings-menu">
-                    <div class="settings-button" onclick="toggleSettings()"><i class="iconoir-wrench"></i></div>
+                    <div class="settings-button" id="settings-button"><i class="iconoir-wrench"></i></div>
                     <div class="settings-dropdown" id="settings-dropdown">
-                        <div class="settings-item" onclick="resizeHorizontal()">
+                        <div class="settings-item" data-action="resizeHorizontal">
                             <span>Horizontal Mode</span>
                         </div>
-                        <div class="settings-item" onclick="resizeVertical()">
+                        <div class="settings-item" data-action="resizeVertical">
                             <span>Vertical Mode</span>
                         </div>
-                        <div class="settings-item" onclick="toggleDarkMode()">
+                        <div class="settings-item" data-action="toggleDarkMode">
                             <span id="dark-mode-setting-text">Dark Mode</span>
                         </div>
-                        <div class="settings-item" onclick="toggleDemo()">
+                        <div class="settings-item" data-action="toggleDemo">
                             <span id="demo-setting-text">Toggle Demo</span>
                         </div>
-                        <div class="settings-item" onclick="openSettingsWindow()">
+                        <div class="settings-item" data-action="openSettingsWindow">
                             <span>Open Settings</span>
                         </div>
                     </div>
@@ -55,17 +55,17 @@
             </div>
             
             <div class="status-ticker-container">
-                <button class="ticker-nav-btn" id="ticker-prev" onclick="statusTicker.prev()">‹</button>
-                
-                <div class="badge badge-success status-badge" id="status-badge" onclick="statusTicker.expandCurrent()">Assistant Ready</div>
-                
-                <button class="ticker-nav-btn" id="ticker-next" onclick="statusTicker.next()">›</button>
+                <button class="ticker-nav-btn" id="ticker-prev">‹</button>
+
+                <div class="badge badge-success status-badge" id="status-badge">Assistant Ready</div>
+
+                <button class="ticker-nav-btn" id="ticker-next">›</button>
             </div>
             
             <div class="tools-container">
                 <!-- Timer Section -->
                 <div class="collapsible-section">
-                    <div class="section-header" onclick="toggleSection('timer')">
+                    <div class="section-header" data-section="timer">
                         <div class="section-title"><i class="iconoir-timer"></i> Timer</div>
                         <div class="section-toggle collapsed" id="timer-toggle">+</div>
                     </div>
@@ -77,7 +77,7 @@
                 
                 <!-- Focus Noise Generator Section -->
                 <div class="collapsible-section">
-                    <div class="section-header" onclick="toggleSection('sounds')">
+                    <div class="section-header" data-section="sounds">
                         <div class="section-title"><i class="iconoir-sound-high"></i> Focus Noise Generator</div>
                         <div class="section-toggle collapsed" id="sounds-toggle">+</div>
                     </div>
@@ -88,7 +88,7 @@
                 
                 <!-- Ambient Sounds Section -->
                 <div class="collapsible-section">
-                    <div class="section-header" onclick="toggleSection('ambient')">
+                    <div class="section-header" data-section="ambient">
                         <div class="section-title"><i class="iconoir-music-note"></i> Ambient Sounds</div>
                         <div class="section-toggle collapsed" id="ambient-toggle">+</div>
                     </div>
@@ -99,7 +99,7 @@
                 
                 <!-- Todo List Section -->
                 <div class="collapsible-section">
-                    <div class="section-header" onclick="toggleSection('todos')">
+                    <div class="section-header" data-section="todos">
                         <div class="section-title"><i class="iconoir-list"></i> Todo Lists</div>
                         <div class="section-toggle collapsed" id="todos-toggle">+</div>
                     </div>
@@ -110,7 +110,7 @@
                 
                 <!-- Memos Section -->
                 <div class="collapsible-section">
-                    <div class="section-header" onclick="toggleSection('memos')">
+                    <div class="section-header" data-section="memos">
                         <div class="section-title"><i class="iconoir-notes"></i> Quick Memos</div>
                         <div class="section-toggle collapsed" id="memos-toggle">+</div>
                     </div>
@@ -121,7 +121,7 @@
                 
                 <!-- Weather Section -->
                 <div class="collapsible-section">
-                    <div class="section-header" onclick="toggleSection('weather')">
+                    <div class="section-header" data-section="weather">
                         <div class="section-title"><i class="iconoir-sun-light"></i> Weather</div>
                         <div class="section-toggle collapsed" id="weather-toggle">+</div>
                     </div>
@@ -132,7 +132,7 @@
                 
                 <!-- Lo-Fi Music Section -->
                 <div class="collapsible-section">
-                    <div class="section-header" onclick="toggleSection('lofi')">
+                    <div class="section-header" data-section="lofi">
                         <div class="section-title"><i class="iconoir-headset"></i> Lo-Fi Music</div>
                         <div class="section-toggle collapsed" id="lofi-toggle">+</div>
                     </div>
@@ -642,6 +642,39 @@
         // Global reference to ambient noise system (for OssC integration)
         window.childAmbientNoise = null;
         
+        // Bind all event listeners (replaces inline onclick handlers blocked by CSP)
+        function bindEventListeners() {
+            // Settings button
+            document.getElementById('settings-button').addEventListener('click', () => window.toggleSettings());
+
+            // Settings menu items - use data-action attributes
+            const actionMap = {
+                'resizeHorizontal': () => window.resizeHorizontal(),
+                'resizeVertical': () => window.resizeVertical(),
+                'toggleDarkMode': () => window.toggleDarkMode(),
+                'toggleDemo': () => window.toggleDemo(),
+                'openSettingsWindow': () => window.openSettingsWindow()
+            };
+            document.querySelectorAll('.settings-item[data-action]').forEach(item => {
+                item.addEventListener('click', () => {
+                    const action = item.dataset.action;
+                    if (actionMap[action]) actionMap[action]();
+                });
+            });
+
+            // Ticker navigation
+            document.getElementById('ticker-prev').addEventListener('click', () => window.statusTicker.prev());
+            document.getElementById('status-badge').addEventListener('click', () => window.statusTicker.expandCurrent());
+            document.getElementById('ticker-next').addEventListener('click', () => window.statusTicker.next());
+
+            // Section headers - use data-section attributes
+            document.querySelectorAll('.section-header[data-section]').forEach(header => {
+                header.addEventListener('click', () => {
+                    window.toggleSection(header.dataset.section);
+                });
+            });
+        }
+
         // Close settings dropdown when clicking outside
         document.addEventListener('click', function(event) {
             const settingsMenu = document.querySelector('.settings-menu');
@@ -851,6 +884,7 @@
         
         // Initialize when page loads
         window.addEventListener('DOMContentLoaded', async () => {
+            bindEventListeners();
             initializeDarkMode();
             randomizeBackground();
             // Initialize window using the imported module

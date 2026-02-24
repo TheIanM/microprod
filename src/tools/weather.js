@@ -431,7 +431,7 @@ export class WeatherTool extends ToolBase {
                 const windowTitle = `${this.currentLocation || 'Weather'} Details - ucanduit`;
                     
                 const weatherWindow = new webviewWindow.WebviewWindow(windowLabel, {
-                    url: '.src/weather-details.html',
+                    url: 'src/weather-details.html',
                     title: windowTitle,
                     width: 700,
                     height: 600,

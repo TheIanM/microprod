@@ -47,7 +47,7 @@
                         <div class="priority-column-content" id="high-priority-content">
                             <!-- High priority lists will be rendered here -->
                         </div>
-                        <button class="tool-btn secondary" onclick="createNewList('high')">
+                        <button class="tool-btn secondary" data-action="createNewList" data-priority="high">
                             <i class="iconoir-plus"></i> Add High Priority List
                         </button>
                     </div>
@@ -64,7 +64,7 @@
                         <div class="priority-column-content" id="medium-priority-content">
                             <!-- Medium priority lists will be rendered here -->
                         </div>
-                        <button class="tool-btn secondary" onclick="createNewList('medium')">
+                        <button class="tool-btn secondary" data-action="createNewList" data-priority="medium">
                             <i class="iconoir-plus"></i> Add Medium Priority List
                         </button>
                     </div>
@@ -81,7 +81,7 @@
                         <div class="priority-column-content" id="low-priority-content">
                             <!-- Low priority lists will be rendered here -->
                         </div>
-                        <button class="tool-btn secondary" onclick="createNewList('low')">
+                        <button class="tool-btn secondary" data-action="createNewList" data-priority="low">
                             <i class="iconoir-plus"></i> Add Low Priority List
                         </button>
                     </div>
@@ -97,7 +97,7 @@
                         <div class="status-column-content" id="todo-status-content">
                             <!-- Todo items will be rendered here -->
                         </div>
-                        <button class="tool-btn" onclick="openAddItemModalWithStatus('todo')">
+                        <button class="tool-btn" data-action="addItem" data-status="todo">
                             <i class="iconoir-plus"></i> Add Item
                         </button>
                     </div>
@@ -109,7 +109,7 @@
                         <div class="status-column-content" id="inprogress-status-content">
                             <!-- In progress items will be rendered here -->
                         </div>
-                        <button class="tool-btn" onclick="openAddItemModalWithStatus('inprogress')">
+                        <button class="tool-btn" data-action="addItem" data-status="inprogress">
                             <i class="iconoir-plus"></i> Add Item
                         </button>
                     </div>
@@ -121,7 +121,7 @@
                         <div class="status-column-content" id="done-status-content">
                             <!-- Completed items will be rendered here -->
                         </div>
-                        <button class="tool-btn" onclick="openAddItemModalWithStatus('done')">
+                        <button class="tool-btn" data-action="addItem" data-status="done">
                             <i class="iconoir-plus"></i> Add Item
                         </button>
                     </div>
@@ -135,7 +135,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="modal-title">Add New List</h3>
-                <button class="modal-close" onclick="closeAddListModal()">&times;</button>
+                <button class="modal-close" id="close-list-modal-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -156,8 +156,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="tool-btn" onclick="closeAddListModal()">Cancel</button>
-                <button class="tool-btn primary" onclick="createListFromModal()">Create List</button>
+                <button class="tool-btn" id="cancel-list-modal-btn">Cancel</button>
+                <button class="tool-btn primary" id="create-list-btn">Create List</button>
             </div>
         </div>
     </div>
@@ -167,7 +167,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="item-modal-title">Add New Item</h3>
-                <button class="modal-close" onclick="closeAddItemModal()">&times;</button>
+                <button class="modal-close" id="close-item-modal-btn">&times;</button>
             </div>
             <div class="modal-body">
                 <div class="form-group">
@@ -188,8 +188,8 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="tool-btn" onclick="closeAddItemModal()">Cancel</button>
-                <button class="tool-btn primary" onclick="createItemFromModal()">Add Item</button>
+                <button class="tool-btn" id="cancel-item-modal-btn">Cancel</button>
+                <button class="tool-btn primary" id="create-item-btn">Add Item</button>
             </div>
         </div>
     </div>
@@ -358,8 +358,25 @@
         }
 
         function bindEvents() {
-            // Event binding for dynamically created elements can go here
-            // Add list and add item buttons now use inline onclick handlers
+            // "Add List" buttons (one per priority column)
+            document.querySelectorAll('[data-action="createNewList"]').forEach(btn => {
+                btn.addEventListener('click', () => createNewList(btn.dataset.priority));
+            });
+
+            // "Add Item" buttons (one per status column)
+            document.querySelectorAll('[data-action="addItem"]').forEach(btn => {
+                btn.addEventListener('click', () => openAddItemModalWithStatus(btn.dataset.status));
+            });
+
+            // Add List modal buttons
+            document.getElementById('close-list-modal-btn').addEventListener('click', () => closeAddListModal());
+            document.getElementById('cancel-list-modal-btn').addEventListener('click', () => closeAddListModal());
+            document.getElementById('create-list-btn').addEventListener('click', () => createListFromModal());
+
+            // Add Item modal buttons
+            document.getElementById('close-item-modal-btn').addEventListener('click', () => closeAddItemModal());
+            document.getElementById('cancel-item-modal-btn').addEventListener('click', () => closeAddItemModal());
+            document.getElementById('create-item-btn').addEventListener('click', () => createItemFromModal());
         }
 
         function renderCurrentView() {
@@ -407,7 +424,7 @@
                         <div class="list-card-header">
                             <div class="list-card-title">${list.name}</div>
                             <div class="list-card-actions">
-                                <button class="list-action-btn" onclick="deleteList('${list.id}')" title="Delete List">
+                                <button class="list-action-btn" data-action="deleteList" data-list-id="${list.id}" title="Delete List">
                                     <i class="iconoir-trash"></i>
                                 </button>
                             </div>
@@ -431,6 +448,14 @@
                     openListItems(listId);
                 });
             });
+
+            // Bind delete buttons
+            container.querySelectorAll('[data-action="deleteList"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteList(btn.dataset.listId);
+                });
+            });
         }
 
         function renderStatusView() {
@@ -443,12 +468,14 @@
                 const breadcrumb = document.getElementById('kanban-breadcrumb');
                 breadcrumb.style.display = 'flex';
                 breadcrumb.innerHTML = `
-                    <span class="breadcrumb-item" onclick="showPriorityView()">
+                    <span class="breadcrumb-item" id="breadcrumb-back">
                         <i class="iconoir-arrow-left"></i> Back to Board
                     </span>
                     <span class="breadcrumb-separator">•</span>
                     <span class="breadcrumb-item active">${list.name}</span>
                 `;
+                // Bind breadcrumb back button
+                document.getElementById('breadcrumb-back').addEventListener('click', () => showPriorityView());
             }
             
             // Render items in each status column
