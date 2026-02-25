@@ -359,10 +359,14 @@ This dedicated memo window gives you plenty of space to write!"
             }
             
             updateWindowTitle(title) {
-                // Update window title in header
+                // Update window title in header safely (no innerHTML with user text)
                 const titleEl = document.getElementById('memo-window-title');
                 if (titleEl) {
-                    titleEl.innerHTML = `<i class="iconoir-notes"></i> ${title}`;
+                    titleEl.textContent = ''; // Clear existing content
+                    const icon = document.createElement('i');
+                    icon.className = 'iconoir-notes';
+                    titleEl.appendChild(icon);
+                    titleEl.appendChild(document.createTextNode(' ' + title));
                 }
                 
                 // Update browser/Tauri window title
