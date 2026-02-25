@@ -514,13 +514,27 @@ This dedicated memo window gives you plenty of space to write!"
             openUrl(url, isEmail = false) {
                 try {
                     let finalUrl = url;
-                    
+
                     if (isEmail) {
                         finalUrl = `mailto:${url}`;
                     } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
                         finalUrl = `https://${url}`;
                     }
-                    
+
+                    // Only allow safe protocols to prevent opening arbitrary URI schemes
+                    const allowedProtocols = ['http:', 'https:', 'mailto:'];
+                    try {
+                        const parsed = new URL(finalUrl);
+                        if (!allowedProtocols.includes(parsed.protocol)) {
+                            this.updateMemoStatus(`Blocked unsafe URL protocol: ${parsed.protocol}`);
+                            return;
+                        }
+                    } catch (parseError) {
+                        // URL constructor failed - not a valid URL, block it
+                        this.updateMemoStatus(`Invalid URL: ${url}`);
+                        return;
+                    }
+
                     if (window.__TAURI__) {
                         window.__TAURI__.shell.open(finalUrl).catch(error => {
                             console.error('Error opening URL:', error);
@@ -529,9 +543,9 @@ This dedicated memo window gives you plenty of space to write!"
                     } else {
                         window.open(finalUrl, '_blank', 'noopener,noreferrer');
                     }
-                    
+
                     this.updateMemoStatus(`Opening: ${url}`);
-                    
+
                 } catch (error) {
                     console.error('Error opening URL:', error);
                     this.updateMemoStatus(`Error opening: ${url}`);
