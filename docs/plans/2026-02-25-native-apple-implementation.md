@@ -12,6 +12,77 @@
 
 ---
 
+## Task Status
+
+| Task | Description | Status |
+|------|-------------|--------|
+| 1 | Xcode Project Scaffolding | ✅ Complete |
+| 2 | SwiftData Models | ✅ Complete |
+| 3 | SettingsView | ✅ Complete |
+| 4 | TimerView | ✅ Complete |
+| 5 | Todo List + Kanban Views | ✅ Complete |
+| 6 | MemosView | ✅ Complete |
+| 7 | WeatherService + WeatherView | 🔄 Written, build pending |
+| 8 | AudioEngine + AudioFileScanner | 🔄 Written, build pending |
+| 9 | OscilloscopeView | 🔄 Written, build pending |
+| 10 | LofiPlayerView + AmbientSoundsView | 🔄 Written, build pending |
+| 11 | AnalyticsService | 🔄 Written, build pending |
+| 12 | Adaptive Layout + ContentView | ⏳ Not started |
+| 13 | Copy Audio Resources | ⏳ Not started |
+
+## Deviations & Fixes From Original Plan
+
+### Task 1: Xcode Project (major change)
+- **Original plan:** Start with `Package.swift`, convert to `.xcodeproj` later
+- **What actually happened:** `swift build` fails for SwiftData — `SwiftDataMacros` plugin
+  is only available in the full Xcode toolchain, not Command Line Tools. Skipped Package.swift
+  entirely and created a proper Xcode multiplatform project directly via Xcode GUI.
+- **Project location:** `ucanduit-apple/ucanduit/ucanduit.xcodeproj` (one level deeper than
+  the plan assumed — Xcode created its source folder at `ucanduit-apple/ucanduit/ucanduit/`)
+- **Build verification:** Use Cmd+B in Xcode, not `swift build`
+- **Bundle ID:** `company.veryimportant.ucanduit` (not `com.ucanduit.app` as originally noted)
+- **Tests:** Swift Testing for unit tests, XCTest for UI tests (as planned)
+- **CloudKit:** Skipped for now — requires paid Apple Developer account
+
+### Task 6: MemosView (minor change)
+- **Original plan:** Used `HSplitView` (macOS-only)
+- **Fix:** Wrapped in `#if os(macOS)` with a `NavigationStack` fallback for iOS,
+  since both targets must compile from the same source files
+
+### Tasks 7–11: Batched (process change)
+- **Original plan:** One task at a time with build check after each
+- **What we did:** Wrote all 5 tasks in one shot, single build check — saves 4 build cycles
+
+### Tasks 8 & 9: Bug fixes applied
+- **AudioEngine:** Original plan created a new `vDSP_create_fftsetup` on every audio frame
+  (called at ~60fps — very wasteful). Fixed to cache the `FFTSetup` in `init()` and
+  reuse it, destroying in `deinit`.
+- **OscilloscopeView:** Original plan had `private mutating func initializeIfNeeded()` —
+  `mutating` is invalid on `View` methods that use `@State`. Removed `mutating`.
+
+### Tasks 7–11: AudioFileScanner conformances (bug fix)
+- `AudioDirectory` needed `Hashable` for use as `Picker` selection value
+- `AudioFile` needed `Identifiable` (using `var id: URL { path }`) to avoid Swift 6
+  type checker picking the wrong `List` overload
+
+### Tasks 7–11: List + @Environment pattern (bug fix)
+In Swift 6, using `@Environment(Observable.self)` inside a `List(data) { row }` closure
+causes the type checker to fail on `RowContent` inference and fall back to the binding-based
+`List` overload. This makes the `file` parameter appear as `Binding<AudioFile>` and
+cascades into errors on every property access.
+
+**Fix:** Use `List { ForEach(data) { item in } }` instead of `List(data) { item in }`.
+Separating the container from the iteration eliminates the ambiguity.
+
+Applied in `LofiPlayerView.swift`. **Check `AmbientSoundsView.swift` for the same pattern**
+if build still fails after LofiPlayerView is fixed.
+
+### Task 9: WeatherService nil fix
+- `parseWeatherXML` returns `WeatherData?` but the original plan's call site treated it
+  as non-optional — would fail to compile. Added `guard let` at the call site.
+
+---
+
 ### Task 1: Xcode Project Scaffolding
 
 **Files:**
