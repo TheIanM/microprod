@@ -26,7 +26,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com data:; font-src 'self' https://fonts.gstatic.com; media-src 'self' asset: https://asset.localhost; connect-src 'self' https://dd.weather.gc.ca https://weather.gc.ca;",
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com data:; img-src 'self' data:; font-src 'self' https://fonts.gstatic.com; media-src 'self' asset: https://asset.localhost; connect-src 'self' https://dd.weather.gc.ca https://weather.gc.ca;",
       "assetProtocol": {
         "enable": true,
         "scope": ["**"]
