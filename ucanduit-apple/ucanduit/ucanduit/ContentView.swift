@@ -1,5 +1,7 @@
 import SwiftUI
 
+// Placeholder root view — will be replaced with the full navigation shell
+// once all feature views are built (Tasks 3-11 in the implementation plan).
 struct ContentView: View {
     var body: some View {
         VStack {
@@ -10,4 +12,8 @@ struct ContentView: View {
         }
         .padding()
     }
+}
+
+#Preview {
+    ContentView()
 }

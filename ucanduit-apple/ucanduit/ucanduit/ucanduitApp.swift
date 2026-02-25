@@ -4,7 +4,14 @@ import SwiftData
 @main
 struct UcanduitApp: App {
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([])
+        let schema = Schema([
+            TodoItem.self,
+            TodoList.self,
+            Memo.self,
+            TimerSession.self,
+            AppSettings.self,
+            AnalyticsEntry.self,
+        ])
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false

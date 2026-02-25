@@ -1,2 +1,14 @@
+# SPM build artifacts
 .build/
 .swiftpm/
+
+# Xcode user-specific state (not shared between developers)
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+
+# Xcode derived data
+DerivedData/
+
+# macOS cruft
+.DS_Store
