@@ -290,7 +290,7 @@ export class TodoListTool extends ToolBase {
             const activeList = this.lists[this.activeListId];
             breadcrumb.innerHTML = `
                 <button class="tool-btn back-button">← Back</button>
-                <i class="iconoir-clipboard-check"></i> ${activeList.name}
+                <i class="iconoir-clipboard-check"></i> ${this.escapeHtml(activeList.name)}
             `;
             content.innerHTML = this.renderItems();
             
@@ -334,7 +334,7 @@ export class TodoListTool extends ToolBase {
             
             return `
                 <div class="todo-list-item" data-list-id="${listId}">
-                    <div>${list.name}</div>
+                    <div>${this.escapeHtml(list.name)}</div>
                     <div class="todo-list-meta">
                         ${completedItems}/${totalItems} completed
                         ${totalItems === 0 ? '' : `• ${Math.round((completedItems/totalItems) * 100)}%`}
@@ -368,7 +368,7 @@ export class TodoListTool extends ToolBase {
         
         return sortedItems.map(item => `
             <div class="todo-item ${item.status === 'done' ? 'completed' : ''}" data-item-id="${item.id}">
-                ${item.text}
+                ${this.escapeHtml(item.text)}
             </div>
         `).join('');
     }
@@ -401,7 +401,7 @@ export class TodoListTool extends ToolBase {
             return `
                 <div class="priority-list-card" data-list-id="${listId}">
                     <div class="priority-list-header">
-                        <div class="priority-list-title">${list.name}</div>
+                        <div class="priority-list-title">${this.escapeHtml(list.name)}</div>
                         <button class="tool-btn small kanban-open-btn" data-list-id="${listId}" title="Open in Kanban">
                             <i class="iconoir-external-link"></i>
                         </button>
@@ -416,7 +416,7 @@ export class TodoListTool extends ToolBase {
                             incompleteItems.map(item => `
                                 <div class="compact-item" data-item-id="${item.id}" data-list-id="${listId}">
                                     <input type="checkbox" ${item.status === 'done' ? 'checked' : ''}>
-                                    <span>${item.text}</span>
+                                    <span>${this.escapeHtml(item.text)}</span>
                                 </div>
                             `).join('')
                         }
@@ -626,6 +626,14 @@ export class TodoListTool extends ToolBase {
         });
     }
     
+    // Escape user-provided text before inserting into HTML templates
+    // Prevents XSS by converting special characters to HTML entities
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     generateId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
     }
