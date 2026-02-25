@@ -422,7 +422,7 @@
                 return `
                     <div class="list-card" data-list-id="${list.id}">
                         <div class="list-card-header">
-                            <div class="list-card-title">${list.name}</div>
+                            <div class="list-card-title">${escapeHtml(list.name)}</div>
                             <div class="list-card-actions">
                                 <button class="list-action-btn" data-action="deleteList" data-list-id="${list.id}" title="Delete List">
                                     <i class="iconoir-trash"></i>
@@ -472,7 +472,7 @@
                         <i class="iconoir-arrow-left"></i> Back to Board
                     </span>
                     <span class="breadcrumb-separator">•</span>
-                    <span class="breadcrumb-item active">${list.name}</span>
+                    <span class="breadcrumb-item active">${escapeHtml(list.name)}</span>
                 `;
                 // Bind breadcrumb back button
                 document.getElementById('breadcrumb-back').addEventListener('click', () => showPriorityView());
@@ -508,7 +508,7 @@
             
             container.innerHTML = items.map(item => `
                 <div class="item-card ${item.status === 'done' ? 'completed' : ''}" data-item-id="${item.id}">
-                    ${item.text}
+                    ${escapeHtml(item.text)}
                     ${item.dueDate ? `<div class="item-due" style="font-size: 11px; color: var(--text-secondary); margin-top: 4px;">${formatDate(item.dueDate)}</div>` : ''}
                 </div>
             `).join('');
@@ -738,6 +738,14 @@
         // Make deleteList global immediately
         window.deleteList = deleteList;
         console.log('🌐 deleteList function assigned to window:', typeof window.deleteList);
+
+        // Escape user-provided text before inserting into HTML templates
+        // Prevents XSS by converting special characters to HTML entities
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
         function generateId() {
             return Date.now().toString(36) + Math.random().toString(36).substr(2);
