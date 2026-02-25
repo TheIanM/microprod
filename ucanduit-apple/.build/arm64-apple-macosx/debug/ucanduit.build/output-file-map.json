@@ -1,0 +1,17 @@
+{
+  "": {
+    "swift-dependencies": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/master.swiftdeps"
+  },
+  "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ContentView.swift": {
+    "dependencies": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ContentView.d",
+    "object": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ContentView.swift.o",
+    "swiftmodule": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ContentView~partial.swiftmodule",
+    "swift-dependencies": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ContentView.swiftdeps"
+  },
+  "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ucanduitApp.swift": {
+    "dependencies": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ucanduitApp.d",
+    "object": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ucanduitApp.swift.o",
+    "swiftmodule": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ucanduitApp~partial.swiftmodule",
+    "swift-dependencies": "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ucanduitApp.swiftdeps"
+  }
+}

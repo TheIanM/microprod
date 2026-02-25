@@ -1,0 +1,243 @@
+{
+  "builtTestProducts" : [
+
+  ],
+  "copyCommands" : {
+
+  },
+  "explicitTargetDependencyImportCheckingMode" : {
+    "none" : {
+
+    }
+  },
+  "generatedSourceTargetSet" : [
+
+  ],
+  "pluginDescriptions" : [
+
+  ],
+  "swiftCommands" : {
+    "C.ucanduit-arm64-apple-macosx15.0-debug.module" : {
+      "executable" : "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "fileList" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/sources",
+      "importPath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/Modules",
+      "inputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ucanduitApp.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/sources"
+        }
+      ],
+      "isLibrary" : false,
+      "moduleName" : "ucanduit",
+      "moduleOutputPath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/Modules/ucanduit.swiftmodule",
+      "objects" : [
+        "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ContentView.swift.o",
+        "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ucanduitApp.swift.o"
+      ],
+      "otherArguments" : [
+        "-target",
+        "arm64-apple-macosx14.0",
+        "-enable-batch-mode",
+        "-index-store-path",
+        "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j8",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-module-cache-path",
+        "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "ucanduit_main",
+        "-swift-version",
+        "5",
+        "-F",
+        "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+        "-sdk",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "ucanduit_apple"
+      ],
+      "outputFileMapPath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/output-file-map.json",
+      "outputs" : [
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ucanduitApp.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/Modules/ucanduit.swiftmodule"
+        }
+      ],
+      "prepareForIndexing" : false,
+      "sources" : [
+        "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ContentView.swift",
+        "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ucanduitApp.swift"
+      ],
+      "tempsPath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build",
+      "wholeModuleOptimization" : false
+    }
+  },
+  "swiftFrontendCommands" : {
+
+  },
+  "swiftTargetScanArgs" : {
+    "ucanduit" : [
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc",
+      "-module-name",
+      "ucanduit",
+      "-package-name",
+      "ucanduit_apple",
+      "-incremental",
+      "-c",
+      "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ContentView.swift",
+      "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ucanduitApp.swift",
+      "-I",
+      "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macosx14.0",
+      "-enable-batch-mode",
+      "-index-store-path",
+      "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/index/store",
+      "-Onone",
+      "-enable-testing",
+      "-j8",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-module-cache-path",
+      "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ModuleCache",
+      "-parseable-output",
+      "-Xfrontend",
+      "-entry-point-function-name",
+      "-Xfrontend",
+      "ucanduit_main",
+      "-swift-version",
+      "5",
+      "-F",
+      "/Library/Developer/CommandLineTools/Library/Developer/Frameworks",
+      "-sdk",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "ucanduit_apple",
+      "-driver-use-frontend-path",
+      "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+    ]
+  },
+  "targetDependencyMap" : {
+    "ucanduit" : [
+
+    ]
+  },
+  "testDiscoveryCommands" : {
+
+  },
+  "testEntryPointCommands" : {
+
+  },
+  "traitConfiguration" : {
+    "enableAllTraits" : false
+  },
+  "writeCommands" : {
+    "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt" : {
+      "alwaysOutOfDate" : true,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<swift-get-version>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Library/Developer/CommandLineTools/usr/bin/swiftc"
+        }
+      ],
+      "outputFilePath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/swift-version--1AB21518FC5DEDBE.txt"
+    },
+    "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit-entitlement.plist" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<entitlement-plist>"
+        },
+        {
+          "kind" : "virtual",
+          "name" : "<com.apple.security.get-task-allow>"
+        }
+      ],
+      "outputFilePath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit-entitlement.plist"
+    },
+    "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/sources" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<sources-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ContentView.swift"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/ucanduit/ucanduitApp.swift"
+        }
+      ],
+      "outputFilePath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/sources"
+    },
+    "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.product/Objects.LinkFileList" : {
+      "alwaysOutOfDate" : false,
+      "inputs" : [
+        {
+          "kind" : "virtual",
+          "name" : "<link-file-list>"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ContentView.swift.o"
+        },
+        {
+          "kind" : "file",
+          "name" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.build/ucanduitApp.swift.o"
+        }
+      ],
+      "outputFilePath" : "/Users/devian/Documents/productivity/ucanduit-v2/ucanduit-apple/.build/arm64-apple-macosx/debug/ucanduit.product/Objects.LinkFileList"
+    }
+  }
+}
