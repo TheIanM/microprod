@@ -28,9 +28,19 @@ A lightweight gamified productivity suite built with Tauri, featuring priority-b
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **Node.js** (v16 or higher)
-- **Rust** (latest stable)
-- **Tauri CLI** (installed automatically)
+
+| Dependency | Version | Notes |
+|------------|---------|-------|
+| **Node.js** | v16+ | [nodejs.org](https://nodejs.org/) |
+| **Rust** | 1.77.2+ | [rustup.rs](https://rustup.rs/) |
+| **Tauri CLI** | 2.x | Installed via npm devDependencies |
+
+**macOS additional requirements:**
+- Xcode Command Line Tools: `xcode-select --install`
+
+**Windows additional requirements:**
+- [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+- WebView2 (included in Windows 10/11)
 
 ### Installation
 
@@ -49,15 +59,31 @@ A lightweight gamified productivity suite built with Tauri, featuring priority-b
    ```bash
    npm run tauri:dev
    ```
+   This starts the Vite dev server and launches the Tauri app with hot-reload.
 
 ### Building for Production
 
-```bash
-# Build the application
-npm run tauri:build
+1. **Build the app**
+   ```bash
+   npm run tauri:build
+   ```
+   This runs the Vite frontend build, compiles the Rust backend in release mode,
+   and bundles everything into a platform-specific application.
 
-# The built application will be in src-tauri/target/release/
-```
+2. **Find the output**
+
+   | Platform | Output Path |
+   |----------|-------------|
+   | macOS | `src-tauri/target/release/bundle/macos/ucanduit.app` |
+   | Windows | `src-tauri/target/release/bundle/msi/ucanduit_*.msi` |
+
+3. **Frontend-only build** (for verifying JS/HTML changes without a full rebuild)
+   ```bash
+   npm run build
+   ```
+   This bundles the frontend into `dist/` but does not recompile the Rust backend
+   or produce a new `.app`/`.msi`. Use the full `npm run tauri:build` when you need
+   a distributable application.
 
 ## 🏗️ Architecture
 
