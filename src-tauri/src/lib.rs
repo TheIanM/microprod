@@ -106,11 +106,24 @@ async fn scan_audio_directory(app_handle: tauri::AppHandle, directory_path: Stri
         .strip_prefix("audio/")
         .or_else(|| directory_path.trim_start_matches('/').strip_prefix("audio"))
         .unwrap_or(directory_path.trim_start_matches('/'));
+
+    // Reject path traversal attempts (e.g. "../../etc/passwd")
+    if relative.contains("..") {
+        return Err("Invalid path: directory traversal not allowed".to_string());
+    }
+
     let path = if relative.is_empty() {
-        audio_base
+        audio_base.clone()
     } else {
         audio_base.join(relative)
     };
+
+    // Verify the resolved path is still within the audio base directory
+    let canonical_base = audio_base.canonicalize().map_err(|e| format!("Failed to resolve audio base: {}", e))?;
+    let canonical_path = path.canonicalize().map_err(|e| format!("Failed to resolve path: {}", e))?;
+    if !canonical_path.starts_with(&canonical_base) {
+        return Err("Invalid path: outside audio directory".to_string());
+    }
 
     println!("🦀 Resolved path: {:?}", path);
 
@@ -193,8 +206,22 @@ async fn get_supported_audio_formats() -> Vec<String> {
         .collect()
 }
 
+/// Validate that a JSON filename is safe: must start with "ucanduit-", end with ".json",
+/// and contain no path separators. This prevents writing/reading arbitrary files.
+fn validate_json_filename(filename: &str) -> Result<(), String> {
+    if !filename.starts_with("ucanduit-") || !filename.ends_with(".json") {
+        return Err(format!("Invalid filename: must match ucanduit-*.json pattern, got '{}'", filename));
+    }
+    if filename.contains('/') || filename.contains('\\') || filename.contains("..") {
+        return Err(format!("Invalid filename: path separators not allowed in '{}'", filename));
+    }
+    Ok(())
+}
+
 #[tauri::command]
 async fn write_json_file(filename: String, data: JsonValue) -> Result<(), String> {
+    validate_json_filename(&filename)?;
+
     let app_dir = match std::env::var("APPDATA") {
         Ok(appdata) => Path::new(&appdata).join("ucanduit"),
         Err(_) => match std::env::var("HOME") {
@@ -220,6 +247,8 @@ async fn write_json_file(filename: String, data: JsonValue) -> Result<(), String
 
 #[tauri::command]
 async fn read_json_file(filename: String) -> Result<JsonValue, String> {
+    validate_json_filename(&filename)?;
+
     let app_dir = match std::env::var("APPDATA") {
         Ok(appdata) => Path::new(&appdata).join("ucanduit"),
         Err(_) => match std::env::var("HOME") {
