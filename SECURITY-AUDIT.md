@@ -10,13 +10,13 @@
 
 | # | Severity | Issue | Location | Status |
 |---|----------|-------|----------|--------|
-| 1 | HIGH | XSS - unescaped user text in todo-list rendering | `src/tools/todo-list.js` | OPEN |
-| 2 | HIGH | XSS - unescaped user text in kanban rendering | `src/kanban-window.html` | OPEN |
-| 3 | MEDIUM | XSS - unescaped title in memo window header | `src/memo-window.html:365` | OPEN |
-| 4 | MEDIUM | Open redirect via memo link opening | `src/memo-window.html:510-535` | OPEN |
-| 5 | LOW | No path traversal check in audio scanning | `src-tauri/src/lib.rs:104-113` | OPEN |
-| 6 | LOW | No filename allowlist for JSON file commands | `src-tauri/src/lib.rs:197,222` | OPEN |
-| 7 | MEDIUM | Asset protocol scope too broad | `src-tauri/tauri.conf.json:32` | OPEN |
+| 1 | HIGH | XSS - unescaped user text in todo-list rendering | `src/tools/todo-list.js` | FIXED |
+| 2 | HIGH | XSS - unescaped user text in kanban rendering | `src/kanban-window.html` | FIXED |
+| 3 | MEDIUM | XSS - unescaped title in memo window header | `src/memo-window.html:365` | FIXED |
+| 4 | MEDIUM | Open redirect via memo link opening | `src/memo-window.html:510-535` | FIXED |
+| 5 | LOW | No path traversal check in audio scanning | `src-tauri/src/lib.rs:104-113` | FIXED |
+| 6 | LOW | No filename allowlist for JSON file commands | `src-tauri/src/lib.rs:197,222` | FIXED |
+| 7 | MEDIUM | Asset protocol scope too broad | `src-tauri/tauri.conf.json:32` | FIXED |
 
 ---
 
