@@ -6,8 +6,7 @@ struct WeatherView: View {
     var body: some View {
         VStack(spacing: 12) {
             if weatherService.isLoading {
-                ProgressView("Loading weather...")
-                    .font(.quicksand(13))
+                WeatherSkeletonView()
             } else if let weather = weatherService.currentWeather {
                 // Location
                 Text(weather.location)
@@ -85,6 +84,41 @@ struct WeatherView: View {
         case "storm":         return "cloud.bolt.fill"
         case "fog":           return "cloud.fog.fill"
         default:              return "cloud.fill"
+        }
+    }
+}
+
+// MARK: - Weather Skeleton
+
+/// Shimmering placeholder that mirrors WeatherView's loaded layout.
+/// Replaces the generic ProgressView while weather data is fetching.
+/// Adapted from ShimmerLoadingCard in the Dropin-components snippet.
+private struct WeatherSkeletonView: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            // Location text placeholder
+            SkeletonPill(width: 110, height: 12)
+
+            // Temperature placeholder — large, matches the 42pt quicksand number
+            SkeletonPill(width: 72, height: 44, cornerRadius: 10)
+
+            // Condition row placeholder (icon + label)
+            SkeletonPill(width: 140, height: 20)
+
+            // Detail grid placeholders — 2 columns
+            HStack(spacing: 12) {
+                VStack(spacing: 4) {
+                    SkeletonPill(width: 60, height: 11)
+                    SkeletonPill(width: 44, height: 14)
+                }
+                VStack(spacing: 4) {
+                    SkeletonPill(width: 60, height: 11)
+                    SkeletonPill(width: 80, height: 14)
+                }
+            }
+
+            // Timestamp row placeholder
+            SkeletonPill(width: 130, height: 10)
         }
     }
 }

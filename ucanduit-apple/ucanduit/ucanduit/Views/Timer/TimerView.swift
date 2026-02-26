@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import UserNotifications
 
 struct TimerView: View {
     @Environment(\.modelContext) private var modelContext
@@ -30,13 +31,21 @@ struct TimerView: View {
                 .font(.quicksand(48, weight: .light))
                 .foregroundStyle(timerColor)
 
-            // Circular progress ring
+            // Circular progress ring — AngularGradient sweep (adapted from pomodoro-timer snippet)
             ZStack {
                 Circle()
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 4)
+                    .stroke(Color.gray.opacity(0.15), lineWidth: 4)
                 Circle()
                     .trim(from: 0, to: progress)
-                    .stroke(timerColor, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                    .stroke(
+                        AngularGradient(
+                            gradient: Gradient(colors: [timerColor.opacity(0.4), timerColor]),
+                            center: .center,
+                            startAngle: .degrees(-90),
+                            endAngle: .degrees(270)
+                        ),
+                        style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                    )
                     .rotationEffect(.degrees(-90))
                     .animation(.linear(duration: 1), value: progress)
             }
@@ -89,13 +98,10 @@ struct TimerView: View {
                     .disabled(!isRunning && remainingSeconds == totalSeconds)
             }
 
-            // Completed session count
+            // 4-dot session counter (adapted from PomodoroCounter in pomodoro-timer snippet)
+            // Dots fill 1→4 within each cycle of 4 completed sessions.
             let completedCount = sessions.filter { $0.completed }.count
-            if completedCount > 0 {
-                Text("\(completedCount) sessions completed")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            SessionDotCounter(count: completedCount, color: timerColor)
         }
         .padding()
         .navigationTitle("Timer")
@@ -120,6 +126,9 @@ struct TimerView: View {
     // MARK: - Actions
 
     private func start() {
+        // Request notification permission on first start — no-op on subsequent calls.
+        NotificationService.shared.requestAuthorization()
+
         // Create a new session record when the timer first starts
         if currentSession == nil {
             let session = TimerSession(duration: totalSeconds, type: selectedPreset)
@@ -164,6 +173,13 @@ struct TimerView: View {
             session.endTime = Date()
             session.actualDuration = totalSeconds
         }
+
+        // Fire a system notification so the user is informed even if they
+        // stepped away from the app. The delegate in NotificationService suppresses
+        // the banner when the app is foregrounded — the ring + confetti (Task 5)
+        // handles the in-app celebration.
+        NotificationService.shared.scheduleTimerCompletion(sessionType: selectedPreset)
+
         currentSession = nil
         remainingSeconds = totalSeconds
         // Keep ring visible briefly at 100% (mirrors JS: 3-second celebration)
@@ -217,5 +233,30 @@ struct TimerView: View {
         let m = seconds / 60
         let s = seconds % 60
         return String(format: "%02d:%02d", m, s)
+    }
+}
+
+// MARK: - Session Dot Counter
+
+/// Four-dot row showing progress within the current cycle of 4 sessions.
+/// Adapted from PomodoroCounter in the pomodoro-timer snippet.
+private struct SessionDotCounter: View {
+    let count: Int
+    let color: Color
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<4) { index in
+                let filled = index < (count % 4) || (count > 0 && count % 4 == 0)
+                Circle()
+                    .fill(filled ? color : color.opacity(0.2))
+                    .frame(width: 8, height: 8)
+                    .overlay(Circle().stroke(color.opacity(0.4), lineWidth: 1))
+                    .animation(.easeInOut(duration: 0.3), value: filled)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 7)
+        .background(Capsule().fill(.ultraThinMaterial))
     }
 }

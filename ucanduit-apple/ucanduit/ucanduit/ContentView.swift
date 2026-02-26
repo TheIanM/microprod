@@ -4,17 +4,23 @@ struct ContentView: View {
     // AudioEngine and TimerState live here — created once, shared via environment
     @State private var audioEngine = AudioEngine()
     @State private var timerState = TimerState()
+    // Toast store — ObservableObject, injected as environmentObject so child views can show toasts
+    @StateObject private var toastStore = ToastStore()
+    // Scroll offset read from macOS ScrollView via PreferenceKey — drives background blur
+    @State private var scrollOffset: CGFloat = 0
 
     var body: some View {
         ZStack {
-            // Animated circle background — always behind all content
-            AnimatedBackgroundView()
+            // Animated circle background — always behind all content.
+            // scrollOffset adds extra blur as the user scrolls deeper into the panel.
+            AnimatedBackgroundView(scrollOffset: scrollOffset)
                 .ignoresSafeArea()
 
             #if os(macOS)
             macOSLayout
                 .environment(audioEngine)
                 .environment(timerState)
+                .environmentObject(toastStore)
                 .onAppear {
                     FloatingWindowManager.configureMainWindow()
                     audioEngine.start()
@@ -23,9 +29,13 @@ struct ContentView: View {
             AdaptiveNavigationView()
                 .environment(audioEngine)
                 .environment(timerState)
+                .environmentObject(toastStore)
                 .onAppear { audioEngine.start() }
             #endif
         }
+        // Toasts overlay the entire panel — attached at the ZStack root so they
+        // appear above all content including CollapsibleSection cards.
+        .toastHost(store: toastStore)
     }
 
     #if os(macOS)
@@ -33,6 +43,17 @@ struct ContentView: View {
     private var macOSLayout: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Invisible GeometryReader at the top of the scroll content.
+                // Reports its current y-position in the ScrollView's coordinate space
+                // via ScrollOffsetKey so ContentView can pass it to AnimatedBackgroundView.
+                GeometryReader { geo in
+                    Color.clear
+                        .preference(
+                            key: ScrollOffsetKey.self,
+                            value: -geo.frame(in: .named("mainScroll")).minY
+                        )
+                }
+                .frame(height: 0)  // zero height — purely a measurement tool
                 // Oscilloscope + timer ring overlay.
                 // The ring is an SVG-style Circle().trim() that fades in when a timer is running,
                 // matching the original JS timer-ring behavior in styles.css.
@@ -54,8 +75,15 @@ struct ContentView: View {
                             .rotationEffect(.degrees(-90))
                             .animation(.linear(duration: 1), value: timerState.progress)
                     }
+
+                    // Confetti burst on timer completion — visible for the 3-second celebration window.
+                    // progress reaches 1.0 exactly when complete() fires; TimerState resets it to 0 after 3s.
+                    if timerState.progress >= 1.0 && !timerState.isRunning {
+                        ConfettiView()
+                    }
                 }
                 .frame(width: 380, height: 380)
+                .clipped()  // keeps confetti within the oscilloscope frame
 
                 TickerView()
 
@@ -68,6 +96,11 @@ struct ContentView: View {
                 CollapsibleSection("Settings",       icon: "settings")    { SettingsView() }
             }
             .padding()
+        }
+        .coordinateSpace(name: "mainScroll")
+        .onPreferenceChange(ScrollOffsetKey.self) { offset in
+            // Clamp to ≥ 0 so rubber-band over-scrolling at the top doesn't invert the blur
+            scrollOffset = max(offset, 0)
         }
         .frame(width: 420)
     }

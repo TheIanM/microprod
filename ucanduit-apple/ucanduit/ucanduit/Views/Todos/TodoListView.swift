@@ -4,6 +4,7 @@ import SwiftData
 struct TodoListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.isEmbedded) private var isEmbedded
+    @EnvironmentObject private var toastStore: ToastStore
     @Query(sort: \TodoList.position) private var lists: [TodoList]
 
     @State private var newListName = ""
@@ -154,11 +155,15 @@ struct TodoListView: View {
         item.list = list
         modelContext.insert(item)
         newItemText = ""
+        toastStore.show("Task added", type: .info, duration: 2)
     }
 
     private func toggleItem(_ item: TodoItem) {
         item.status = (item.status == .todo) ? .done : .todo
         item.completedAt = (item.status == .done) ? Date() : nil
+        if item.status == .done {
+            toastStore.show("Task complete", subtitle: item.text, type: .success, duration: 2.5)
+        }
     }
 
     private func deleteLists(at offsets: IndexSet) {

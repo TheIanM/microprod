@@ -1,10 +1,15 @@
 import SwiftUI
 import SwiftData
 import CoreText
+import UserNotifications
 
 @main
 struct UcanduitApp: App {
     init() {
+        // Register notification delegate before any view appears.
+        // Accessing the singleton here ensures the UNUserNotificationCenterDelegate
+        // is in place even if the timer view hasn't been shown yet.
+        _ = NotificationService.shared
         registerFonts()
     }
 

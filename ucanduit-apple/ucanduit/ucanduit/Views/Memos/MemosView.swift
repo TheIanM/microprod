@@ -4,6 +4,7 @@ import SwiftData
 struct MemosView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.isEmbedded) private var isEmbedded
+    @EnvironmentObject private var toastStore: ToastStore
     @Query(sort: \Memo.updatedAt, order: .reverse) private var memos: [Memo]
 
     @State private var selectedMemo: Memo?
@@ -91,11 +92,13 @@ struct MemosView: View {
         let memo = Memo(content: "")
         modelContext.insert(memo)
         selectedMemo = memo
+        toastStore.show("New memo created", type: .success, duration: 2)
     }
 
     private func deleteMemo(_ memo: Memo) {
         if selectedMemo == memo { selectedMemo = nil }
         modelContext.delete(memo)
+        toastStore.show("Memo deleted", type: .info, duration: 2)
     }
 
     /// Re-derives title and preview from content on every edit,

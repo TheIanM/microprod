@@ -3,6 +3,7 @@ import SwiftUI
 struct LofiPlayerView: View {
     @Environment(AudioEngine.self) private var audioEngine
     @Environment(\.isEmbedded) private var isEmbedded
+    @EnvironmentObject private var toastStore: ToastStore
 
     @State private var categories: [AudioDirectory] = []
     @State private var selectedCategory: AudioDirectory?
@@ -48,6 +49,7 @@ struct LofiPlayerView: View {
                             currentIndex = idx
                         }
                         audioEngine.playLofi(file: file.path)
+                        toastStore.show(file.name, type: .custom(icon: "music.note", color: .accentColor), duration: 2.5)
                     } label: {
                         HStack {
                             Text(file.name)
@@ -122,11 +124,19 @@ struct LofiPlayerView: View {
         guard !files.isEmpty else { return }
         currentIndex = (currentIndex + 1) % files.count
         audioEngine.playLofi(file: files[currentIndex].path)
+        showTrackToast()
     }
 
     private func playPrevious() {
         guard !files.isEmpty else { return }
         currentIndex = (currentIndex - 1 + files.count) % files.count
         audioEngine.playLofi(file: files[currentIndex].path)
+        showTrackToast()
+    }
+
+    private func showTrackToast() {
+        guard currentIndex < files.count else { return }
+        let name = files[currentIndex].name
+        toastStore.show(name, type: .custom(icon: "music.note", color: .accentColor), duration: 2.5)
     }
 }

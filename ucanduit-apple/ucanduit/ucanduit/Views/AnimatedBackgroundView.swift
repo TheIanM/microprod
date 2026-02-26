@@ -3,11 +3,21 @@ import SwiftUI
 /// Animated background matching the original uduit Swift implementation.
 /// Six blurred circles (one per brand color) randomly positioned and slowly pulsing.
 /// Uses drawingGroup() to render all circles into a single Metal texture for performance.
+///
+/// - Parameter scrollOffset: Current scroll offset in the macOS panel's ScrollView.
+///   Mapped to an additional blur so the background deepens as the user scrolls down.
 struct AnimatedBackgroundView: View {
+    var scrollOffset: CGFloat = 0
+
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var circles: [CircleConfig] = []
     @State private var pulsing = false
+
+    /// Extra blur driven by scroll position — up to 20pt after 200pt of scroll.
+    private var scrollBlur: CGFloat {
+        min(max(scrollOffset / 10, 0), 20)
+    }
 
     // Four size options matching the original Swift implementation
     private let sizes: [CGFloat] = [200, 300, 400, 500]
@@ -33,7 +43,7 @@ struct AnimatedBackgroundView: View {
                         .fill(circle.color)
                         .frame(width: circle.size, height: circle.size)
                         .scaleEffect(pulsing ? 2.0 : 1.0)  // 1x → 2x, same as original
-                        .blur(radius: pulsing ? 80 : 40)   // blur 40 → 80 during pulse
+                        .blur(radius: (pulsing ? 80 : 40) + scrollBlur)  // scroll adds up to 20pt
                         .opacity(0.3)
                         .position(
                             x: geo.size.width  * circle.xFrac,
