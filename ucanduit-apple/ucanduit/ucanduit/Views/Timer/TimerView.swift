@@ -208,6 +208,8 @@ struct TimerView: View {
         case .focus:      IconoirIcon("brain",      size: 18)
         case .shortBreak: IconoirIcon("coffee-cup", size: 18)
         case .longBreak:  IconoirIcon("coffee-cup", size: 18)
+        case .custom: IconoirIcon("plus",
+                                  size: 18)
         }
     }
 
