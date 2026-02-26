@@ -3,6 +3,7 @@ import SwiftData
 
 struct TimerView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(TimerState.self) private var timerState
     @Query(sort: \TimerSession.startTime, order: .reverse) private var sessions: [TimerSession]
 
     // Timer state
@@ -118,6 +119,7 @@ struct TimerView: View {
             currentSession = session
         }
         isRunning = true
+        pushTimerState()
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             tick()
         }
@@ -127,12 +129,14 @@ struct TimerView: View {
         isRunning = false
         timer?.invalidate()
         timer = nil
+        pushTimerState()
     }
 
     private func reset() {
         pause()
         remainingSeconds = totalSeconds
         currentSession = nil
+        pushTimerState()
     }
 
     private func tick() {
@@ -141,6 +145,7 @@ struct TimerView: View {
             return
         }
         remainingSeconds -= 1
+        pushTimerState()
     }
 
     private func complete() {
@@ -153,6 +158,23 @@ struct TimerView: View {
         }
         currentSession = nil
         remainingSeconds = totalSeconds
+        // Keep ring visible briefly at 100% (mirrors JS: 3-second celebration)
+        timerState.progress = 1.0
+        timerState.isRunning = false
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak timerState] in
+            timerState?.progress = 0
+        }
+    }
+
+    /// Pushes current timer values to the shared TimerState so ContentView
+    /// can render the progress ring around the oscilloscope.
+    private func pushTimerState() {
+        timerState.isRunning = isRunning
+        timerState.totalSeconds = totalSeconds
+        timerState.remainingSeconds = remainingSeconds
+        timerState.progress = totalSeconds > 0
+            ? Double(totalSeconds - remainingSeconds) / Double(totalSeconds)
+            : 0
     }
 
     private func selectPreset(_ type: SessionType, seconds: Int) {

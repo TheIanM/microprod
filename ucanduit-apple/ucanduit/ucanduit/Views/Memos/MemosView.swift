@@ -3,86 +3,86 @@ import SwiftData
 
 struct MemosView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.isEmbedded) private var isEmbedded
     @Query(sort: \Memo.updatedAt, order: .reverse) private var memos: [Memo]
 
     @State private var selectedMemo: Memo?
 
     var body: some View {
-        // HSplitView is macOS-only — iOS gets a NavigationStack instead.
-        // Full platform-specific layout is handled in Task 11 (Platform Integration).
-        #if os(macOS)
-        HSplitView {
-            sidebarView
-            detailView
-        }
-        .navigationTitle("Memos")
-        #else
-        NavigationStack {
-            sidebarView
-                .navigationTitle("Memos")
-                .navigationDestination(for: Memo.self) { memo in
-                    memoEditor(for: memo)
+        VStack(spacing: 0) {
+            // Toolbar: new memo button
+            HStack {
+                Spacer()
+                Button { createMemo() } label: {
+                    HStack(spacing: 4) {
+                        IconoirIcon("plus", size: 13)
+                        Text("New Memo")
+                    }
                 }
-        }
-        #endif
-    }
-
-    // MARK: - Sidebar (memo list)
-
-    private var sidebarView: some View {
-        VStack {
-            Button("New Memo") { createMemo() }
-                .padding(8)
-
-            List(memos, selection: $selectedMemo) { memo in
-                VStack(alignment: .leading) {
-                    Text(memo.title)
-                        .font(.headline)
-                        .lineLimit(1)
-                    Text(memo.preview)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                    Text(memo.updatedAt, style: .relative)
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
-                }
-                .tag(memo)
-                .contextMenu {
-                    Button("Delete", role: .destructive) { deleteMemo(memo) }
-                }
+                .buttonStyle(.ucanduit)
             }
-        }
-        .frame(minWidth: 180, maxWidth: 250)
-    }
+            .padding(.bottom, 8)
 
-    // MARK: - Detail (editor)
-
-    private var detailView: some View {
-        Group {
-            if let memo = selectedMemo {
-                memoEditor(for: memo)
+            // Memo list — fixed height so it doesn't fight the outer ScrollView
+            if memos.isEmpty {
+                Text("No memos yet")
+                    .font(.quicksand(13))
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 16)
             } else {
-                ContentUnavailableView(
-                    "No Memo Selected",
-                    systemImage: "note.text",
-                    description: Text("Select or create a memo")
-                )
+                List(memos, id: \.id, selection: $selectedMemo) { memo in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(memo.title)
+                            .font(.quicksand(14, weight: .medium))
+                            .lineLimit(1)
+                        Text(memo.preview)
+                            .font(.quicksand(12))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(2)
+                        Text(memo.updatedAt, style: .relative)
+                            .font(.quicksand(11))
+                            .foregroundStyle(.tertiary)
+                    }
+                    .tag(memo)
+                    .contextMenu {
+                        Button("Delete", role: .destructive) { deleteMemo(memo) }
+                    }
+                }
+                .listStyle(.plain)
+                // Cap list height: 3 rows max, then scroll internally
+                .frame(height: min(CGFloat(memos.count) * 60 + 8, 188))
+                .scrollDisabled(isEmbedded && memos.count <= 3)
+            }
+
+            // Selected memo editor — shown below the list
+            if let memo = selectedMemo {
+                Divider()
+                    .padding(.vertical, 8)
+
+                TextEditor(text: Binding(
+                    get: { memo.content },
+                    set: { newValue in
+                        memo.content = newValue
+                        memo.updatedAt = Date()
+                        updateMemoMetadata(memo)
+                    }
+                ))
+                .font(.quicksand(14))
+                .frame(height: 120)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                // Delete selected memo
+                Button { deleteMemo(memo) } label: {
+                    HStack(spacing: 4) {
+                        IconoirIcon("trash", size: 13)
+                        Text("Delete")
+                    }
+                }
+                .buttonStyle(.ucanduit)
+                .foregroundStyle(.red)
+                .padding(.top, 4)
             }
         }
-    }
-
-    private func memoEditor(for memo: Memo) -> some View {
-        TextEditor(text: Binding(
-            get: { memo.content },
-            set: { newValue in
-                memo.content = newValue
-                memo.updatedAt = Date()
-                updateMemoMetadata(memo)
-            }
-        ))
-        .font(.body)
-        .padding()
     }
 
     // MARK: - Actions

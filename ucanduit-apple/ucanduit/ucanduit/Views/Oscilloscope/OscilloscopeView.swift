@@ -1,4 +1,5 @@
 import SwiftUI
+import Combine
 
 /// A single metaball with position, velocity, and audio-reactive radius.
 /// Mirrors the JS app's metaball object in oscilloscope.js.
