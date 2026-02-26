@@ -46,18 +46,25 @@ struct OscilloscopeView: View {
 
     private let ballCount = 4  // one ball per frequency quarter, matching JS app
 
+    // 60 fps timer drives physics — @State mutations here persist (unlike inside Canvas)
+    private let timer = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
+
     var body: some View {
-        TimelineView(.animation) { _ in
-            Canvas { context, canvasSize in
-                let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
-                let bounds = CGRect(origin: .zero, size: canvasSize)
-                updateBalls(in: bounds)
-                updateAudio()
-                drawMetaballs(context: context, bounds: bounds, center: center)
-            }
+        Canvas { context, canvasSize in
+            // READ-ONLY — no state mutations here, just draw whatever balls holds right now
+            let center = CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2)
+            let bounds = CGRect(origin: .zero, size: canvasSize)
+            drawMetaballs(context: context, bounds: bounds, center: center)
         }
         .frame(width: size.width, height: size.height)
-        .onAppear { initializeIfNeeded() }  // no `mutating` needed — @State handles it
+        .onAppear { initializeIfNeeded() }
+        .onReceive(timer) { _ in
+            // Physics runs here — mutations to @State are safe inside onReceive
+            guard isInitialized else { return }
+            let bounds = CGRect(origin: .zero, size: size)
+            updateBalls(in: bounds)
+            updateAudio()
+        }
     }
 
     // MARK: - Initialization
