@@ -57,6 +57,8 @@ struct ContentView: View {
                 }
                 .frame(width: 380, height: 380)
 
+                TickerView()
+
                 CollapsibleSection("Timer",          icon: "timer")       { TimerView() }
                 CollapsibleSection("Todo Lists",     icon: "task-list")   { TodoListView() }
                 CollapsibleSection("Quick Memos",    icon: "notes")       { MemosView() }

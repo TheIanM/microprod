@@ -17,6 +17,8 @@ final class AudioEngine {
 
     var isLofiPlaying = false
     var lofiTrackName = ""
+    // Number of ambient sounds currently playing — used by the ticker
+    var activeAmbientCount: Int = 0
 
     private let engine = AVAudioEngine()
     private let lofiPlayer = AVAudioPlayerNode()
@@ -131,6 +133,7 @@ final class AudioEngine {
             player.volume = volume
             if !engine.isRunning { start() }
             player.play()
+            activeAmbientCount = ambientPlayers.count
         } catch {
             print("AudioEngine: failed to play ambient \(id): \(error)")
         }
@@ -138,10 +141,12 @@ final class AudioEngine {
 
     func stopAmbient(id: String) {
         ambientPlayers[id]?.stop()
+        activeAmbientCount = ambientPlayers.values.filter { $0.isPlaying }.count
     }
 
     func stopAllAmbient() {
         ambientPlayers.values.forEach { $0.stop() }
+        activeAmbientCount = 0
     }
 
     func setAmbientVolume(_ volume: Float) {

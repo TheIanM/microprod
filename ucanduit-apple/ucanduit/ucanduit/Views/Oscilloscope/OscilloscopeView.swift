@@ -16,36 +16,23 @@ struct Metaball {
     var audioAmplitude: CGFloat = 0
 }
 
-struct BreathingCircle {
-    var x: CGFloat
-    var y: CGFloat
-    var baseRadius: CGFloat
-    var color1: Color
-    var color2: Color
-    var breathingPhase: CGFloat
-    var breathingSpeed: CGFloat
-    var breathingScale: CGFloat
-    var opacity: Double
-}
-
-/// Audio-reactive metaballs visualization using SwiftUI Canvas + TimelineView.
+/// Audio-reactive metaballs visualization using SwiftUI Canvas.
 ///
-/// Rendering pipeline (mirrors JS app):
-/// 1. Glow layer — blurred radial gradients per ball
-/// 2. Solid ball bodies — radial gradient fill
-/// 3. Breathing circles — additive blend on top
-///
-/// Note: True pixel-level alpha-threshold metaballs would need Metal/CIFilter.
-/// This Canvas approximation is close enough; we can swap in Metal later if needed.
+/// Rendering pipeline:
+/// 1. Glow layer — blurred radial gradients behind the blob
+/// 2. Merged blob — SwiftUI's built-in .alphaThreshold filter fuses nearby balls:
+///    balls are drawn white into a temp buffer → blur spreads their alpha outward →
+///    alphaThreshold snaps combined alpha ≥ 0.5 to solid color, below to clear.
+///    Where two balls are close, blurred edge alphas add up above the threshold → they fuse.
 struct OscilloscopeView: View {
     var frequencyData: [Float]
     var size: CGSize = CGSize(width: 300, height: 300)
 
     @State private var balls: [Metaball] = []
-    @State private var circles: [BreathingCircle] = []
     @State private var isInitialized = false
 
-    private let ballCount = 4  // one ball per frequency quarter, matching JS app
+    // 4 balls matching JS app's numMetaballs
+    private let ballCount = 4
 
     // 60 fps timer drives physics — @State mutations here persist (unlike inside Canvas)
     private let timer = Timer.publish(every: 1.0 / 60.0, on: .main, in: .common).autoconnect()
@@ -60,7 +47,6 @@ struct OscilloscopeView: View {
         .frame(width: size.width, height: size.height)
         .onAppear { initializeIfNeeded() }
         .onReceive(timer) { _ in
-            // Physics runs here — mutations to @State are safe inside onReceive
             guard isInitialized else { return }
             let bounds = CGRect(origin: .zero, size: size)
             updateBalls(in: bounds)
@@ -75,31 +61,22 @@ struct OscilloscopeView: View {
         let binCount = 256
         let rangeSize = binCount / ballCount
 
+        // Spawn balls in a tight organic cluster near center — matches JS clusterRadius approach.
+        // evenly spaced angles + small random jitter, short spawn distance.
         balls = (0..<ballCount).map { i in
-            Metaball(
-                x: CGFloat.random(in: -30...30),
-                y: CGFloat.random(in: -30...30),
-                baseRadius: 25 + CGFloat.random(in: 0...10),
-                currentRadius: 25 + CGFloat.random(in: 0...10),
-                vx: CGFloat.random(in: -1...1),
-                vy: CGFloat.random(in: -1...1),
+            let angle = CGFloat(i) * (2 * .pi / CGFloat(ballCount))
+                        + CGFloat.random(in: -0.4...0.4)
+            let distance = CGFloat.random(in: 0...20)
+            return Metaball(
+                x: cos(angle) * distance,
+                y: sin(angle) * distance,
+                baseRadius: 45 + CGFloat.random(in: 0...15),  // larger than before — blobs need to overlap
+                currentRadius: 45 + CGFloat.random(in: 0...15),
+                vx: CGFloat.random(in: -0.2...0.2),           // gentle drift, matching JS vx max 0.2
+                vy: CGFloat.random(in: -0.2...0.2),
                 breathingPhase: CGFloat.random(in: 0...(2 * .pi)),
                 breathingSpeed: 0.008 + CGFloat.random(in: 0...0.015),
                 frequencyRange: (start: i * rangeSize, end: (i + 1) * rangeSize)
-            )
-        }
-
-        circles = (0..<5).map { _ in
-            BreathingCircle(
-                x: CGFloat.random(in: -40...40),
-                y: CGFloat.random(in: -40...40),
-                baseRadius: 20 + CGFloat.random(in: 0...30),
-                color1: Color(hue: Double.random(in: 0...1), saturation: 0.6, brightness: 0.8),
-                color2: Color(hue: Double.random(in: 0...1), saturation: 0.5, brightness: 0.9),
-                breathingPhase: CGFloat.random(in: 0...(2 * .pi)),
-                breathingSpeed: 0.005 + CGFloat.random(in: 0...0.01),
-                breathingScale: 0.8 + CGFloat.random(in: 0...0.4),
-                opacity: 0.7 + Double.random(in: 0...0.3)
             )
         }
 
@@ -112,23 +89,26 @@ struct OscilloscopeView: View {
         let center = CGPoint(x: bounds.width / 2, y: bounds.height / 2)
         for i in balls.indices {
             balls[i].breathingPhase += balls[i].breathingSpeed
+
             let breathOffset = sin(balls[i].breathingPhase) * 3
-            let audioBoost = balls[i].audioAmplitude * 55
+            let audioBoost = balls[i].audioAmplitude * 55  // matches JS: normalizedAmplitude * 55
             balls[i].currentRadius = balls[i].baseRadius + breathOffset + audioBoost
 
+            // Orbital drift with audio-reactive speed — mirrors JS updateMetaballsFromAudio
             let audioInfluence = balls[i].audioAmplitude * 1.8
             balls[i].x += sin(balls[i].breathingPhase) * (0.4 + audioInfluence)
             balls[i].y += cos(balls[i].breathingPhase * 0.7) * (0.3 + audioInfluence)
             balls[i].x += balls[i].vx
             balls[i].y += balls[i].vy
 
-            // Bounce off container walls
-            let halfW = center.x * 0.8
-            let halfH = center.y * 0.8
-            let r = balls[i].currentRadius
+            // Tight container — keep balls within 35% of the canvas half-size so they stay
+            // close enough to the center to overlap and trigger the merging effect.
+            let halfW = center.x * 0.35
+            let halfH = center.y * 0.35
+            let r = balls[i].currentRadius * 0.8
 
             if abs(balls[i].x) + r > halfW {
-                balls[i].vx *= -0.5
+                balls[i].vx *= -0.5  // gentle bounce, matches JS 0.5 factor
                 balls[i].x = balls[i].x > 0 ? halfW - r : -(halfW - r)
             }
             if abs(balls[i].y) + r > halfH {
@@ -156,56 +136,48 @@ struct OscilloscopeView: View {
     // MARK: - Rendering
 
     private func drawMetaballs(context: GraphicsContext, bounds: CGRect, center: CGPoint) {
-        let avgAmplitude = balls.isEmpty ? 0 : balls.reduce(0) { $0 + $1.audioAmplitude } / CGFloat(balls.count)
+        let avgAmplitude = balls.isEmpty ? 0 :
+            balls.reduce(0) { $0 + $1.audioAmplitude } / CGFloat(balls.count)
 
-        // Glow pass
-        for ball in balls {
-            let pos = CGPoint(x: center.x + ball.x, y: center.y + ball.y)
-            let glowR = ball.currentRadius * 1.5
-            var ctx = context
-            ctx.opacity = Double(0.3 + avgAmplitude * 0.4)
-            ctx.addFilter(.blur(radius: 12))
-            ctx.drawLayer { inner in
-                inner.fill(
+        // --- Pass 1: Glow (blurred aura behind the blob) ---
+        context.drawLayer { glow in
+            glow.addFilter(.blur(radius: 22))
+            glow.opacity = Double(0.3 + avgAmplitude * 0.4)
+            for ball in balls {
+                let pos = CGPoint(x: center.x + ball.x, y: center.y + ball.y)
+                let glowR = ball.currentRadius * 1.8
+                glow.fill(
                     Circle().path(in: CGRect(x: pos.x - glowR, y: pos.y - glowR,
                                              width: glowR * 2, height: glowR * 2)),
                     with: .radialGradient(
-                        Gradient(colors: [.purple.opacity(0.6), .blue.opacity(0.3), .clear]),
+                        Gradient(colors: [.purple.opacity(0.6), .indigo.opacity(0.3), .clear]),
                         center: pos, startRadius: 0, endRadius: glowR
                     )
                 )
             }
         }
 
-        // Solid ball bodies
-        for ball in balls {
-            let pos = CGPoint(x: center.x + ball.x, y: center.y + ball.y)
-            let r = ball.currentRadius
-            context.fill(
-                Circle().path(in: CGRect(x: pos.x - r, y: pos.y - r, width: r * 2, height: r * 2)),
-                with: .radialGradient(
-                    Gradient(colors: [.purple.opacity(0.8), .blue.opacity(0.6), .indigo.opacity(0.4)]),
-                    center: pos, startRadius: 0, endRadius: r
+        // --- Pass 2: Merged blob ---
+        // Filters on the outer context are applied to the drawLayer output as a whole
+        // (not per draw call inside), so the sequence is:
+        //   1. All white circles rendered into a temp buffer (alphas composite normally)
+        //   2. Blur spreads each ball's alpha outward — overlapping balls accumulate alpha
+        //   3. alphaThreshold snaps anything ≥ 0.5 to solid purple, anything below to clear
+        // Where two balls are close enough, the blurred overlap pushes combined alpha above
+        // 0.5 and they fuse into one organic shape.
+        var blobCtx = context
+        blobCtx.addFilter(.alphaThreshold(min: 0.5, color: .purple))
+        blobCtx.addFilter(.blur(radius: 30))
+        blobCtx.drawLayer { blob in
+            for ball in balls {
+                let pos = CGPoint(x: center.x + ball.x, y: center.y + ball.y)
+                let r = ball.currentRadius
+                blob.fill(
+                    Circle().path(in: CGRect(x: pos.x - r, y: pos.y - r,
+                                             width: r * 2, height: r * 2)),
+                    with: .color(.white)
                 )
-            )
-        }
-
-        // Breathing circles (additive blend)
-        for circle in circles {
-            let phase = circle.breathingPhase + circle.breathingSpeed
-            let scale = 1.0 + sin(phase) * 0.2 * circle.breathingScale
-            let r = circle.baseRadius * scale
-            let pos = CGPoint(x: center.x + circle.x, y: center.y + circle.y)
-            var ctx = context
-            ctx.opacity = circle.opacity * 0.4
-            ctx.blendMode = .plusLighter
-            ctx.fill(
-                Circle().path(in: CGRect(x: pos.x - r, y: pos.y - r, width: r * 2, height: r * 2)),
-                with: .radialGradient(
-                    Gradient(colors: [circle.color1, circle.color2]),
-                    center: pos, startRadius: 0, endRadius: r
-                )
-            )
+            }
         }
     }
 }
