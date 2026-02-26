@@ -17,6 +17,12 @@ struct IconoirIcon: View {
     let name: String
     var size: CGFloat = 20
 
+    /// Unlabelled init so call sites can write IconoirIcon("timer") not IconoirIcon(name: "timer").
+    init(_ name: String, size: CGFloat = 20) {
+        self.name = name
+        self.size = size
+    }
+
     var body: some View {
         #if os(macOS)
         if let image = loadSVG() {

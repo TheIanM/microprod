@@ -105,6 +105,7 @@ struct CollapsibleSection<Content: View>: View {
             } label: {
                 HStack(spacing: 10) {
                     IconoirIcon(icon, size: 18)
+                    IconoirIcon(icon, size: 18)
                         .foregroundStyle(.primary)
                     Text(title)
                         .font(.quicksand(16, weight: .semibold))
