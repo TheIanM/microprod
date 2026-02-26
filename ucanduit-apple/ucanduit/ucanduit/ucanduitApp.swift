@@ -1,8 +1,13 @@
 import SwiftUI
 import SwiftData
+import CoreText
 
 @main
 struct UcanduitApp: App {
+    init() {
+        registerFonts()
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             TodoItem.self,
@@ -28,5 +33,19 @@ struct UcanduitApp: App {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+    }
+
+    /// Registers Quicksand variable font so Font.custom("Quicksand", size:) works throughout the app.
+    /// The variable font covers all weights — no need to register individual static weights.
+    private func registerFonts() {
+        guard let url = Bundle.main.url(
+            forResource: "Quicksand-VariableFont_wght",
+            withExtension: "ttf",
+            subdirectory: "Quicksand"
+        ) else {
+            print("⚠️ Quicksand font not found in bundle")
+            return
+        }
+        CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
     }
 }
