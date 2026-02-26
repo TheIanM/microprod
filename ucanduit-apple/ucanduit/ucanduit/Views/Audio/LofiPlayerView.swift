@@ -2,80 +2,110 @@ import SwiftUI
 
 struct LofiPlayerView: View {
     @Environment(AudioEngine.self) private var audioEngine
+    @Environment(\.isEmbedded) private var isEmbedded
 
     @State private var categories: [AudioDirectory] = []
     @State private var selectedCategory: AudioDirectory?
     @State private var files: [AudioFile] = []
     @State private var volume: Float = 0.8
+    @State private var currentIndex: Int = 0
 
     var body: some View {
         VStack(spacing: 12) {
             // Now playing indicator
-            if audioEngine.isLofiPlaying {
-                HStack {
-                    Image(systemName: "music.note")
-                    Text(audioEngine.lofiTrackName).lineLimit(1)
-                }
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack {
+                IconoirIcon("music-note", size: 14)
+                    .foregroundStyle(.secondary)
+                Text(audioEngine.isLofiPlaying ? audioEngine.lofiTrackName : "Nothing playing")
+                    .font(.quicksand(13))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             // Category picker (only shown when multiple lofi folders exist)
             if categories.count > 1 {
                 Picker("Category", selection: $selectedCategory) {
                     ForEach(categories, id: \.name) { cat in
-                        Text(cat.name).tag(cat as AudioDirectory?)
+                        Text(cat.name)
+                            .font(.quicksand(14))
+                            .tag(cat as AudioDirectory?)
                     }
                 }
                 .onChange(of: selectedCategory) { _, newCat in
                     if let cat = newCat {
                         files = AudioFileScanner.scanDirectory(at: cat.path)
+                        currentIndex = 0
                     }
                 }
             }
 
-            // Track list — List { ForEach } avoids Swift 6 overload ambiguity
-            // when @Environment(Observable.self) is accessed inside the row closure
+            // Track list — explicit type annotation avoids Swift 6 binding overload ambiguity
+            // when @Environment(Observable.self) is accessed inside the closure.
             List {
                 ForEach(files) { (file: AudioFile) in
                     Button {
+                        if let idx = files.firstIndex(where: { $0.id == file.id }) {
+                            currentIndex = idx
+                        }
                         audioEngine.playLofi(file: file.path)
                     } label: {
                         HStack {
-                            Text(file.name).lineLimit(1)
+                            Text(file.name)
+                                .font(.quicksand(14))
+                                .lineLimit(1)
                             Spacer()
                             if audioEngine.lofiTrackName == file.path.deletingPathExtension().lastPathComponent {
-                                Image(systemName: "speaker.wave.2.fill")
+                                IconoirIcon("sound-high", size: 14)
                                     .foregroundStyle(.tint)
                             }
                         }
                     }
+                    .buttonStyle(.plain)
                 }
             }
+            .listStyle(.plain)
+            .scrollDisabled(isEmbedded)
+            .frame(minHeight: 80)
 
-            // Play/stop + volume
-            HStack {
+            // Playback controls: Previous | Play/Pause | Next
+            HStack(spacing: 16) {
+                Button { playPrevious() } label: {
+                    IconoirIcon("nav-arrow-left", size: 20)
+                }
+                .buttonStyle(.plain)
+                .disabled(files.isEmpty)
+
                 Button {
                     if audioEngine.isLofiPlaying {
                         audioEngine.stopLofi()
-                    } else if let file = files.randomElement() {
-                        audioEngine.playLofi(file: file.path)
+                    } else if !files.isEmpty {
+                        audioEngine.playLofi(file: files[currentIndex].path)
                     }
                 } label: {
-                    Image(systemName: audioEngine.isLofiPlaying ? "stop.fill" : "play.fill")
+                    IconoirIcon(audioEngine.isLofiPlaying ? "pause" : "play", size: 24)
                 }
+                .buttonStyle(.plain)
+                .disabled(files.isEmpty)
 
+                Button { playNext() } label: {
+                    IconoirIcon("nav-arrow-right", size: 20)
+                }
+                .buttonStyle(.plain)
+                .disabled(files.isEmpty)
+            }
+
+            // Volume control
+            HStack {
+                IconoirIcon("sound-high", size: 14).foregroundStyle(.secondary)
                 Slider(value: $volume, in: 0...1) { _ in
                     audioEngine.setLofiVolume(volume)
                 }
-
                 Text("\(Int(volume * 100))%")
+                    .font(.quicksand(12))
                     .monospacedDigit()
                     .frame(width: 40)
             }
         }
-        .padding()
-        .navigationTitle("Lo-Fi Music")
         .onAppear {
             let all = AudioFileScanner.scanDirectories()
             categories = all.filter { $0.name.lowercased().contains("lofi") }
@@ -84,5 +114,19 @@ struct LofiPlayerView: View {
                 files = AudioFileScanner.scanDirectory(at: first.path)
             }
         }
+    }
+
+    // MARK: - Track Navigation
+
+    private func playNext() {
+        guard !files.isEmpty else { return }
+        currentIndex = (currentIndex + 1) % files.count
+        audioEngine.playLofi(file: files[currentIndex].path)
+    }
+
+    private func playPrevious() {
+        guard !files.isEmpty else { return }
+        currentIndex = (currentIndex - 1 + files.count) % files.count
+        audioEngine.playLofi(file: files[currentIndex].path)
     }
 }

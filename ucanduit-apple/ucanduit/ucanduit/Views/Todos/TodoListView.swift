@@ -3,6 +3,7 @@ import SwiftData
 
 struct TodoListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.isEmbedded) private var isEmbedded
     @Query(sort: \TodoList.position) private var lists: [TodoList]
 
     @State private var newListName = ""
@@ -13,16 +14,15 @@ struct TodoListView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Priority filter bar — "All" + each priority level
-            HStack {
+            HStack(spacing: 6) {
                 ForEach([nil] + Priority.allCases.map { Optional($0) }, id: \.self) { priority in
                     Button(priority?.rawValue.capitalized ?? "All") {
                         priorityFilter = priority
                     }
-                    .buttonStyle(.bordered)
-                    .tint(priorityFilter == priority ? .accentColor : .secondary)
+                    .buttonStyle(.ucanduit)
+                    .opacity(priorityFilter == priority ? 1.0 : 0.6)
                 }
             }
-            .padding(.horizontal)
             .padding(.vertical, 8)
 
             if let list = selectedList {
@@ -31,11 +31,11 @@ struct TodoListView: View {
                 listsView
             }
         }
-        .navigationTitle(selectedList?.name ?? "Todo Lists")
         .toolbar {
             if selectedList != nil {
                 ToolbarItem(placement: .navigation) {
                     Button("Back") { selectedList = nil }
+                        .buttonStyle(.ucanduit)
                 }
             }
         }
@@ -44,15 +44,16 @@ struct TodoListView: View {
     // MARK: - Lists View
 
     private var listsView: some View {
-        VStack {
+        VStack(spacing: 8) {
             HStack {
                 TextField("New list name", text: $newListName)
+                    .font(.quicksand(14))
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addList() }
                 Button("Add") { addList() }
+                    .buttonStyle(.ucanduit)
                     .disabled(newListName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            .padding()
 
             List {
                 ForEach(filteredLists) { list in
@@ -60,11 +61,12 @@ struct TodoListView: View {
                         selectedList = list
                     } label: {
                         HStack {
-                            VStack(alignment: .leading) {
-                                Text(list.name).font(.headline)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(list.name)
+                                    .font(.quicksand(14, weight: .medium))
                                 let incomplete = list.items.filter { $0.status == .todo }.count
                                 Text("\(incomplete) pending / \(list.items.count) total")
-                                    .font(.caption)
+                                    .font(.quicksand(12))
                                     .foregroundStyle(.secondary)
                             }
                             Spacer()
@@ -75,21 +77,24 @@ struct TodoListView: View {
                 }
                 .onDelete(perform: deleteLists)
             }
+            .listStyle(.plain)
+            .scrollDisabled(isEmbedded)
         }
     }
 
     // MARK: - Items View
 
     private func itemsView(for list: TodoList) -> some View {
-        VStack {
+        VStack(spacing: 8) {
             HStack {
                 TextField("New task", text: $newItemText)
+                    .font(.quicksand(14))
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { addItem(to: list) }
                 Button("Add") { addItem(to: list) }
+                    .buttonStyle(.ucanduit)
                     .disabled(newItemText.trimmingCharacters(in: .whitespaces).isEmpty)
             }
-            .padding()
 
             List {
                 let incomplete = list.items
@@ -110,6 +115,8 @@ struct TodoListView: View {
                     }
                 }
             }
+            .listStyle(.plain)
+            .scrollDisabled(isEmbedded)
         }
     }
 
@@ -122,6 +129,7 @@ struct TodoListView: View {
             .buttonStyle(.plain)
 
             Text(item.text)
+                .font(.quicksand(14))
                 .strikethrough(item.status == .done)
                 .foregroundStyle(item.status == .done ? .secondary : .primary)
 
@@ -167,20 +175,16 @@ struct TodoListView: View {
     }
 
     private func priorityBadge(_ priority: Priority) -> some View {
-        Text(priority.rawValue.capitalized)
-            .font(.caption2)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(priorityColor(priority).opacity(0.2))
-            .foregroundStyle(priorityColor(priority))
-            .clipShape(Capsule())
-    }
-
-    private func priorityColor(_ priority: Priority) -> Color {
-        switch priority {
-        case .high:   return .red
-        case .medium: return .orange
-        case .low:    return .blue
+        HStack(spacing: 3) {
+            // Iconoir priority arrow icons (coloured by priority)
+            switch priority {
+            case .high:
+                IconoirIcon("priority-up", size: 14).foregroundStyle(.red)
+            case .medium:
+                IconoirIcon("priority-medium", size: 14).foregroundStyle(.orange)
+            case .low:
+                IconoirIcon("priority-down", size: 14).foregroundStyle(.blue)
+            }
         }
     }
 }
