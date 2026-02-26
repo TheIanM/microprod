@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AmbientSoundsView: View {
     @Environment(AudioEngine.self) private var audioEngine
+    @Environment(\.isEmbedded) private var isEmbedded
 
     @State private var categories: [AudioDirectory] = []
     @State private var playingIds: Set<String> = []
@@ -9,53 +10,66 @@ struct AmbientSoundsView: View {
 
     var body: some View {
         VStack(spacing: 12) {
-            // Each category is a toggle — multiple can play at once
-            List(categories, id: \.name) { category in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(category.name).font(.headline)
-                        Text("\(category.fileCount) tracks")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+            if categories.isEmpty {
+                Text("No ambient sounds found")
+                    .font(.quicksand(13))
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 16)
+            } else {
+                // Each category is a toggle — multiple can play simultaneously
+                List(categories, id: \.name) { category in
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(category.name)
+                                .font(.quicksand(14, weight: .medium))
+                            Text("\(category.fileCount) tracks")
+                                .font(.quicksand(12))
+                                .foregroundStyle(.secondary)
+                        }
 
-                    Spacer()
+                        Spacer()
 
-                    Button { toggleCategory(category) } label: {
-                        Image(systemName: playingIds.contains(category.name)
-                              ? "speaker.wave.2.fill"
-                              : "play.circle")
-                        .font(.title2)
+                        Button { toggleCategory(category) } label: {
+                            IconoirIcon(
+                                playingIds.contains(category.name) ? "sound-high" : "play",
+                                size: 22
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .listStyle(.plain)
+                .scrollDisabled(isEmbedded)
             }
 
             // Master ambient volume
             HStack {
-                Text("Volume").font(.caption)
+                IconoirIcon("sound-high", size: 14).foregroundStyle(.secondary)
                 Slider(value: $volume, in: 0...1) { _ in
                     audioEngine.setAmbientVolume(volume)
                 }
                 Text("\(Int(volume * 100))%")
+                    .font(.quicksand(12))
                     .monospacedDigit()
                     .frame(width: 40)
             }
-            .padding(.horizontal)
 
             if !playingIds.isEmpty {
-                Button("Stop All") {
+                Button {
                     audioEngine.stopAllAmbient()
                     playingIds.removeAll()
+                } label: {
+                    HStack(spacing: 4) {
+                        IconoirIcon("sound-off", size: 14)
+                        Text("Stop All")
+                            .font(.quicksand(14, weight: .medium))
+                    }
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.ucanduit)
             }
         }
-        .padding()
-        .navigationTitle("Ambient Sounds")
         .onAppear {
             let all = AudioFileScanner.scanDirectories()
-            // Lofi directories are handled by LofiPlayerView
             categories = all.filter { !$0.name.lowercased().contains("lofi") }
         }
     }

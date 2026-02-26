@@ -25,9 +25,9 @@ struct TimerView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            // Time remaining display
+            // Time remaining display — Quicksand matches .timer-main-display in timer.css
             Text(formatTime(remainingSeconds))
-                .font(.system(size: 48, weight: .light, design: .monospaced))
+                .font(.quicksand(48, weight: .light))
                 .foregroundStyle(timerColor)
 
             // Circular progress ring
@@ -42,14 +42,22 @@ struct TimerView: View {
             }
             .frame(width: 120, height: 120)
 
-            // Preset selector buttons
-            HStack(spacing: 8) {
+            // Preset selector — 2-column grid matches .preset-buttons in timer.css
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 ForEach(presets, id: \.0) { preset in
-                    Button(preset.1) {
+                    Button {
                         selectPreset(preset.0, seconds: preset.2)
+                    } label: {
+                        VStack(spacing: 2) {
+                            presetIcon(for: preset.0)
+                            Text(preset.1).font(.quicksand(11, weight: .semibold))
+                            Text("\(preset.2 / 60) min").font(.quicksand(10))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 6)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(selectedPreset == preset.0 ? .accentColor : .secondary)
+                    .buttonStyle(.ucanduit)
+                    .opacity(selectedPreset == preset.0 ? 1.0 : 0.6)
                 }
             }
 
@@ -74,10 +82,10 @@ struct TimerView: View {
                 Button(isRunning ? "Pause" : "Start") {
                     isRunning ? pause() : start()
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.ucanduit)
 
                 Button("Reset") { reset() }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.ucanduit)
                     .disabled(!isRunning && remainingSeconds == totalSeconds)
             }
 
@@ -190,6 +198,18 @@ struct TimerView: View {
     }
 
     // MARK: - Helpers
+
+    /// Maps session types to Iconoir icons — matches .preset-btn i in timer.css
+    @ViewBuilder
+    private func presetIcon(for type: SessionType) -> some View {
+        switch type {
+        case .pomodoro:   IconoirIcon("flash",      size: 18)
+        case .quick:      IconoirIcon("timer",      size: 18)
+        case .focus:      IconoirIcon("brain",      size: 18)
+        case .shortBreak: IconoirIcon("coffee-cup", size: 18)
+        case .longBreak:  IconoirIcon("coffee-cup", size: 18)
+        }
+    }
 
     private func formatTime(_ seconds: Int) -> String {
         let m = seconds / 60
