@@ -23,4 +23,7 @@ Thumbs.db
 src-tauri/target/
 
 # Build outputs
-build/
+build/.worktrees/
+
+# Git worktrees
+.worktrees/
